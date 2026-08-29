@@ -1,0 +1,42 @@
+# Environment variables (Nunca subir a Git)
+.env
+.env*.local
+.env.production
+.env.development
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+build/
+dist/
+.vercel
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Python / FastAPI / Virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+venv/
+.venv/
+env/
+ENV/
+
+# SQLite / Bases de datos locales
+*.sqlite
+*.sqlite3
+*.db
+
+# IDEs y SO
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
