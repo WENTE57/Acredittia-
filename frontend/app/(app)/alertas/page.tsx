@@ -1,107 +1,310 @@
+
 "use client";
-import { useCallback, useEffect, useState } from "react";
-import * as Api from "@/lib/cliente";
-import type { Alerta, EstadoAlerta, Pagina, ResumenAlertas, Severidad } from "@/lib/tipos";
-import { Chip, Kpi, Paginador, SEVERIDAD_LABEL, Spinner, Vacio } from "@/components/ui";
-
 export default function AlertasPage() {
-  const [data, setData] = useState<Pagina<Alerta> | null>(null);
-  const [resumen, setResumen] = useState<ResumenAlertas | null>(null);
-  const [page, setPage] = useState(1);
-  const [sev, setSev] = useState("");
-  const [estado, setEstado] = useState("");
-  const [error, setError] = useState("");
-
-  const cargar = useCallback(() => {
-    Api.alertas.listar({
-      page, page_size: 50,
-      severidad: (sev || undefined) as Severidad | undefined,
-      estado: (estado || undefined) as EstadoAlerta | undefined,
-      // Con un estado concreto se muestran también las ya resueltas.
-      solo_activas: estado === "resuelta" ? false : undefined,
-    }).then(setData).catch((e) => setError(Api.mensajeError(e)));
-    Api.alertas.resumen().then(setResumen).catch(() => {});
-  }, [page, sev, estado]);
-
-  useEffect(() => { cargar(); }, [cargar]);
-  useEffect(() => { setPage(1); }, [sev, estado]);
-
-  const marcar = async (id: string, cambios: { leida?: boolean; resuelta?: boolean; estado?: EstadoAlerta }) => {
-    setError("");
-    try { await Api.alertas.editar(id, cambios); cargar(); }
-    catch (e) { setError(Api.mensajeError(e)); }
-  };
-
-  const todasLeidas = async () => {
-    setError("");
-    try { await Api.alertas.marcarLeidas(); cargar(); }
-    catch (e) { setError(Api.mensajeError(e)); }
-  };
-
-  if (!data || !resumen) return error ? <p className="p-6 text-red-600">{error}</p> : <Spinner />;
-  const items = Api.items(data);
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-brand">Alertas</h1>
-        <button className="btn-ghost" onClick={todasLeidas}>Marcar todas como leídas</button>
-      </div>
-      {error && <p className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-        <Kpi titulo="Críticas" valor={resumen.criticas} color="text-red-600" />
-        <Kpi titulo="Advertencias" valor={resumen.advertencias} color="text-amber-600" />
-        <Kpi titulo="Activas" valor={resumen.activas} />
-        <Kpi titulo="No leídas" valor={resumen.no_leidas} />
-        <Kpi titulo="Resueltas (30d)" valor={resumen.resueltas_30d} color="text-emerald-600" />
-      </div>
-      <div className="flex flex-wrap gap-3">
-        <select className="input max-w-[200px]" value={sev} onChange={(e) => setSev(e.target.value)}>
-          <option value="">Todas las severidades</option>
-          <option value="critica">Crítica</option><option value="alta">Alta</option>
-          <option value="media">Media</option><option value="baja">Baja</option>
-          <option value="advertencia">Advertencia</option><option value="informativa">Informativa</option>
-        </select>
-        <select className="input max-w-[200px]" value={estado} onChange={(e) => setEstado(e.target.value)}>
-          <option value="">Todos los estados</option>
-          <option value="nueva">Nueva</option>
-          <option value="en_progreso">En progreso</option>
-          <option value="bloqueante">Bloqueante</option>
-          <option value="informativa">Informativa</option>
-          <option value="resuelta">Resuelta</option>
-        </select>
-      </div>
-
-      {items.length === 0 ? (
-        <Vacio mensaje="Sin alertas con ese filtro. Todo en orden. ✅" />
-      ) : (
-        <div className="space-y-2">
-          {items.map((a) => (
-            <div key={a.id}
-              className={`flex flex-wrap items-center gap-3 rounded-xl border bg-white px-4 py-3 shadow-sm ${a.leida ? "border-slate-200" : "border-accent/60"}`}>
-              <Chip estado={a.severidad} texto={SEVERIDAD_LABEL[a.severidad]} />
-              <Chip estado={a.estado} />
-              <div className="min-w-0 flex-1 text-sm">
-                <b>{a.titulo}</b>
-                <div className="text-slate-500">{a.descripcion}</div>
-                <div className="text-xs text-slate-400">
-                  {new Date(a.created_at).toLocaleString("es-CL")} · origen: {a.origen}
-                  {a.plataforma && ` · ${a.plataforma}`}
-                  {a.resuelta_at && ` · resuelta ${new Date(a.resuelta_at).toLocaleDateString("es-CL")}`}
-                </div>
-              </div>
-              {!a.leida && <button className="btn-ghost text-xs" onClick={() => marcar(a.id, { leida: true })}>Marcar leída</button>}
-              {a.estado !== "en_progreso" && !a.resuelta && (
-                <button className="btn-ghost text-xs" onClick={() => marcar(a.id, { estado: "en_progreso" })}>En progreso</button>
-              )}
-              {a.resuelta
-                ? <button className="btn-ghost text-xs" onClick={() => marcar(a.id, { resuelta: false })}>Reabrir</button>
-                : <button className="btn-primary text-xs" onClick={() => marcar(a.id, { resuelta: true })}>Resolver</button>}
-            </div>
-          ))}
-        </div>
-      )}
-      <Paginador page={data.page} totalPaginas={data.total_pages} total={data.total}
-        etiqueta="alertas" onPagina={setPage} />
+    <div dangerouslySetInnerHTML={{ __html: `
+  <div class="view-head">
+    <div><h2>Alertas</h2><p>Supervisa y gestiona las alertas críticas y preventivas que requieren atención.</p></div>
+    <div class="view-head-actions">
+      <button class="btn-outline" onclick="toast('Configurar notificaciones — próximamente')">⚙ Configurar notificaciones</button>
     </div>
+  </div>
+  <div class="dkpis5" style="grid-template-columns:repeat(4,1fr)">
+    <div class="dkpi5"><div class="ic5" style="background:rgba(239,68,68,.15)">🔴</div><div><div class="kt">Críticas</div><div class="kn" style="color:#f87171">24</div><div class="ks bad">requieren atención</div></div></div>
+    <div class="dkpi5"><div class="ic5" style="background:rgba(245,158,11,.15)">⚠️</div><div><div class="kt">Advertencias</div><div class="kn" style="color:#fbbf24">1</div><div class="ks warn">requieren atención</div></div></div>
+    <div class="dkpi5"><div class="ic5" style="background:rgba(61,98,245,.15)">ℹ️</div><div><div class="kt">Informativas</div><div class="kn">3</div><div class="ks">nuevas</div></div></div>
+    <div class="dkpi5"><div class="ic5" style="background:rgba(16,185,129,.15)">✅</div><div><div class="kt">Resueltas (30 días)</div><div class="kn">50</div><div class="ks ok">en los últimos 30 días</div></div></div>
+  </div>
+  <div class="atabs">
+    <span class="atab active" onclick="setAlertTab(this,'all')">Todas</span>
+    <span class="atab" onclick="setAlertTab(this,'critica')">Críticas <span style="background:#fee2e2;color:#b91c1c;border-radius:10px;padding:1px 6px;font-size:.7rem">24</span></span>
+    <span class="atab" onclick="setAlertTab(this,'advertencia')">Advertencias</span>
+    <span class="atab" onclick="setAlertTab(this,'informativa')">Informativas</span>
+    <span class="atab" onclick="setAlertTab(this,'leida')">Resueltas</span>
+  </div>
+  <div class="view-filters">
+    <input class="view-search" placeholder="Buscar alerta por palabra clave..." oninput="filterTable(this.value,'al-tbl')">
+    <select class="view-select"><option>Estado: Todas</option></select>
+    <select class="view-select"><option>Tipo: Todos</option></select>
+    <select class="view-select"><option>Ámbito: Todos</option></select>
+    <select class="view-select"><option>Faena: Todas</option></select>
+  </div>
+  <div class="vtable-wrap">
+    <table class="vtable" id="al-tbl">
+      <thead><tr><th>Prioridad</th><th>Alerta</th><th>Tipo</th><th>Ámbito</th><th>Relacionado con</th><th>Faena / Contrato</th><th>Fecha</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody id="al-tbody"><tr>
+    <td><span class="chip critica" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">⊗ Crítica</span></td>
+    <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Vencimiento: Anexo Contrato</div><div class="sub">Castro Vera Marcelo — RUT 16.789.123-4</div></td>
+    <td><span class="chip critica" style="font-size:.65rem">Crítica</span></td>
+    <td style="font-size:.8rem;color:var(--gris)">Personal</td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3D62F5,#6B8FFF);color:#fff;display:grid;place-items:center;font-size:.7rem;font-weight:700;flex-shrink:0">C</div><div><div style="font-size:.8rem;font-weight:600;color:var(--txt)">Castro Vera Marcelo</div></div></div></td>
+    <td style="font-size:.8rem;color:var(--gris)">Los Pelambres / Transporte y Operaciones MLP</td>
+    <td style="font-size:.78rem;color:var(--gris)">Hace 14 días</td>
+    <td><span class="chip vencido" style="font-size:.65rem">No leída</span></td>
+    <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+  </tr><tr>
+    <td><span class="chip critica" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">⊗ Crítica</span></td>
+    <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Vencimiento: Registro de la Charla de Inducción Persona Nueva</div><div class="sub">Rojas Fuentes Matías — RUT 13.456.789-4</div></td>
+    <td><span class="chip critica" style="font-size:.65rem">Crítica</span></td>
+    <td style="font-size:.8rem;color:var(--gris)">Personal</td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3D62F5,#6B8FFF);color:#fff;display:grid;place-items:center;font-size:.7rem;font-weight:700;flex-shrink:0">R</div><div><div style="font-size:.8rem;font-weight:600;color:var(--txt)">Rojas Fuentes Matías</div></div></div></td>
+    <td style="font-size:.8rem;color:var(--gris)">Andina / Servicios Mina Andina</td>
+    <td style="font-size:.78rem;color:var(--gris)">Hace 14 días</td>
+    <td><span class="chip vencido" style="font-size:.65rem">No leída</span></td>
+    <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+  </tr><tr>
+    <td><span class="chip critica" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">⊗ Crítica</span></td>
+    <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Vencimiento: Registro de la Charla de Inducción Persona Nueva</div><div class="sub">Leiva Campos Andrés — RUT 13.777.888-9</div></td>
+    <td><span class="chip critica" style="font-size:.65rem">Crítica</span></td>
+    <td style="font-size:.8rem;color:var(--gris)">Personal</td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3D62F5,#6B8FFF);color:#fff;display:grid;place-items:center;font-size:.7rem;font-weight:700;flex-shrink:0">L</div><div><div style="font-size:.8rem;font-weight:600;color:var(--txt)">Leiva Campos Andrés</div></div></div></td>
+    <td style="font-size:.8rem;color:var(--gris)">El Teniente / Mantención Minera El Teniente</td>
+    <td style="font-size:.78rem;color:var(--gris)">Hace 14 días</td>
+    <td><span class="chip vencido" style="font-size:.65rem">No leída</span></td>
+    <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+  </tr><tr>
+    <td><span class="chip critica" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">⊗ Crítica</span></td>
+    <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Vencimiento: Anexo Contrato</div><div class="sub">Peña Castillo Diego — RUT 13.890.777-8</div></td>
+    <td><span class="chip critica" style="font-size:.65rem">Crítica</span></td>
+    <td style="font-size:.8rem;color:var(--gris)">Personal</td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3D62F5,#6B8FFF);color:#fff;display:grid;place-items:center;font-size:.7rem;font-weight:700;flex-shrink:0">P</div><div><div style="font-size:.8rem;font-weight:600;color:var(--txt)">Peña Castillo Diego</div></div></div></td>
+    <td style="font-size:.8rem;color:var(--gris)">Candelaria / Servicios Candelaria</td>
+    <td style="font-size:.78rem;color:var(--gris)">Hace 14 días</td>
+    <td><span class="chip vencido" style="font-size:.65rem">No leída</span></td>
+    <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+  </tr><tr>
+    <td><span class="chip critica" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">⊗ Crítica</span></td>
+    <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Vencimiento: Anexo Contrato</div><div class="sub">Donoso Araya Francisca — RUT 13.987.777-6</div></td>
+    <td><span class="chip critica" style="font-size:.65rem">Crítica</span></td>
+    <td style="font-size:.8rem;color:var(--gris)">Personal</td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3D62F5,#6B8FFF);color:#fff;display:grid;place-items:center;font-size:.7rem;font-weight:700;flex-shrink:0">D</div><div><div style="font-size:.8rem;font-weight:600;color:var(--txt)">Donoso Araya Francisca</div></div></div></td>
+    <td style="font-size:.8rem;color:var(--gris)">Caserones / Servicios Caserones</td>
+    <td style="font-size:.78rem;color:var(--gris)">Hace 14 días</td>
+    <td><span class="chip vencido" style="font-size:.65rem">No leída</span></td>
+    <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+  </tr><tr>
+    <td><span class="chip critica" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">⊗ Crítica</span></td>
+    <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Vencimiento: Curso Teórico/Práctico Manejo a la Defensiva y Conducción 4x4 en Alta Montaña</div><div class="sub">Gallardo Meza Sebastián — RUT 13.777.999-1</div></td>
+    <td><span class="chip critica" style="font-size:.65rem">Crítica</span></td>
+    <td style="font-size:.8rem;color:var(--gris)">Personal</td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3D62F5,#6B8FFF);color:#fff;display:grid;place-items:center;font-size:.7rem;font-weight:700;flex-shrink:0">G</div><div><div style="font-size:.8rem;font-weight:600;color:var(--txt)">Gallardo Meza Sebastián</div></div></div></td>
+    <td style="font-size:.8rem;color:var(--gris)">Parque Eólico Antofagasta I / Servicios Parque Eólico Antofagasta I</td>
+    <td style="font-size:.78rem;color:var(--gris)">Hace 14 días</td>
+    <td><span class="chip vencido" style="font-size:.65rem">No leída</span></td>
+    <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+  </tr><tr>
+    <td><span class="chip critica" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">⊗ Crítica</span></td>
+    <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Vencimiento: Revisión Técnica</div><div class="sub">Mitsubishi L200 4x4 — RUT UVWX-61</div></td>
+    <td><span class="chip critica" style="font-size:.65rem">Crítica</span></td>
+    <td style="font-size:.8rem;color:var(--gris)">Personal</td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3D62F5,#6B8FFF);color:#fff;display:grid;place-items:center;font-size:.7rem;font-weight:700;flex-shrink:0">M</div><div><div style="font-size:.8rem;font-weight:600;color:var(--txt)">Mitsubishi L200 4x4</div></div></div></td>
+    <td style="font-size:.8rem;color:var(--gris)">Los Pelambres / Transporte y Operaciones MLP</td>
+    <td style="font-size:.78rem;color:var(--gris)">Hace 14 días</td>
+    <td><span class="chip vencido" style="font-size:.65rem">No leída</span></td>
+    <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+  </tr><tr>
+    <td><span class="chip critica" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">⊗ Crítica</span></td>
+    <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Vencimiento: Seguro Obligatorio</div><div class="sub">Toyota Hilux 4x4 — RUT ANDF-06</div></td>
+    <td><span class="chip critica" style="font-size:.65rem">Crítica</span></td>
+    <td style="font-size:.8rem;color:var(--gris)">Personal</td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3D62F5,#6B8FFF);color:#fff;display:grid;place-items:center;font-size:.7rem;font-weight:700;flex-shrink:0">T</div><div><div style="font-size:.8rem;font-weight:600;color:var(--txt)">Toyota Hilux 4x4</div></div></div></td>
+    <td style="font-size:.8rem;color:var(--gris)">Andina / Servicios Mina Andina</td>
+    <td style="font-size:.78rem;color:var(--gris)">Hace 14 días</td>
+    <td><span class="chip vencido" style="font-size:.65rem">No leída</span></td>
+    <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+  </tr><tr>
+    <td><span class="chip critica" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">⊗ Crítica</span></td>
+    <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Vencimiento: Seguro Obligatorio</div><div class="sub">Manitou MT-1440 — RUT TENF-06</div></td>
+    <td><span class="chip critica" style="font-size:.65rem">Crítica</span></td>
+    <td style="font-size:.8rem;color:var(--gris)">Personal</td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3D62F5,#6B8FFF);color:#fff;display:grid;place-items:center;font-size:.7rem;font-weight:700;flex-shrink:0">M</div><div><div style="font-size:.8rem;font-weight:600;color:var(--txt)">Manitou MT-1440</div></div></div></td>
+    <td style="font-size:.8rem;color:var(--gris)">El Teniente / Mantención Minera El Teniente</td>
+    <td style="font-size:.78rem;color:var(--gris)">Hace 14 días</td>
+    <td><span class="chip vencido" style="font-size:.65rem">No leída</span></td>
+    <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+  </tr><tr>
+    <td><span class="chip critica" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">⊗ Crítica</span></td>
+    <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Vencimiento: Revisión Técnica</div><div class="sub">Toyota Hilux — RUT CANF-06</div></td>
+    <td><span class="chip critica" style="font-size:.65rem">Crítica</span></td>
+    <td style="font-size:.8rem;color:var(--gris)">Personal</td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3D62F5,#6B8FFF);color:#fff;display:grid;place-items:center;font-size:.7rem;font-weight:700;flex-shrink:0">T</div><div><div style="font-size:.8rem;font-weight:600;color:var(--txt)">Toyota Hilux</div></div></div></td>
+    <td style="font-size:.8rem;color:var(--gris)">Candelaria / Servicios Candelaria</td>
+    <td style="font-size:.78rem;color:var(--gris)">Hace 14 días</td>
+    <td><span class="chip vencido" style="font-size:.65rem">No leída</span></td>
+    <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+  </tr><tr>
+    <td><span class="chip critica" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">⊗ Crítica</span></td>
+    <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Vencimiento: Revisión Técnica</div><div class="sub">JLG Alzahombre — RUT CASF-06</div></td>
+    <td><span class="chip critica" style="font-size:.65rem">Crítica</span></td>
+    <td style="font-size:.8rem;color:var(--gris)">Personal</td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3D62F5,#6B8FFF);color:#fff;display:grid;place-items:center;font-size:.7rem;font-weight:700;flex-shrink:0">J</div><div><div style="font-size:.8rem;font-weight:600;color:var(--txt)">JLG Alzahombre</div></div></div></td>
+    <td style="font-size:.8rem;color:var(--gris)">Caserones / Servicios Caserones</td>
+    <td style="font-size:.78rem;color:var(--gris)">Hace 14 días</td>
+    <td><span class="chip vencido" style="font-size:.65rem">No leída</span></td>
+    <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+  </tr><tr>
+    <td><span class="chip critica" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">⊗ Crítica</span></td>
+    <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Vencimiento: Padrón o Contrato de Arrendamiento</div><div class="sub">Caterpillar 140M — RUT EOLF-06</div></td>
+    <td><span class="chip critica" style="font-size:.65rem">Crítica</span></td>
+    <td style="font-size:.8rem;color:var(--gris)">Personal</td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3D62F5,#6B8FFF);color:#fff;display:grid;place-items:center;font-size:.7rem;font-weight:700;flex-shrink:0">C</div><div><div style="font-size:.8rem;font-weight:600;color:var(--txt)">Caterpillar 140M</div></div></div></td>
+    <td style="font-size:.8rem;color:var(--gris)">Parque Eólico Antofagasta I / Servicios Parque Eólico Antofagasta I</td>
+    <td style="font-size:.78rem;color:var(--gris)">Hace 14 días</td>
+    <td><span class="chip vencido" style="font-size:.65rem">No leída</span></td>
+    <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+  </tr><tr>
+    <td><span class="chip critica" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">⊗ Crítica</span></td>
+    <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Vencimiento: Cédula de Identidad</div><div class="sub">Castro Vera Marcelo — RUT 16.789.123-4</div></td>
+    <td><span class="chip critica" style="font-size:.65rem">Crítica</span></td>
+    <td style="font-size:.8rem;color:var(--gris)">Personal</td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3D62F5,#6B8FFF);color:#fff;display:grid;place-items:center;font-size:.7rem;font-weight:700;flex-shrink:0">C</div><div><div style="font-size:.8rem;font-weight:600;color:var(--txt)">Castro Vera Marcelo</div></div></div></td>
+    <td style="font-size:.8rem;color:var(--gris)">Los Pelambres / Transporte y Operaciones MLP</td>
+    <td style="font-size:.78rem;color:var(--gris)">Hace 4 días</td>
+    <td><span class="chip vencido" style="font-size:.65rem">No leída</span></td>
+    <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+  </tr><tr>
+    <td><span class="chip critica" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">⊗ Crítica</span></td>
+    <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Vencimiento: Autorización del Trabajador/a para Uso y Almacenamiento de Datos Personales</div><div class="sub">Rojas Fuentes Matías — RUT 13.456.789-4</div></td>
+    <td><span class="chip critica" style="font-size:.65rem">Crítica</span></td>
+    <td style="font-size:.8rem;color:var(--gris)">Personal</td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3D62F5,#6B8FFF);color:#fff;display:grid;place-items:center;font-size:.7rem;font-weight:700;flex-shrink:0">R</div><div><div style="font-size:.8rem;font-weight:600;color:var(--txt)">Rojas Fuentes Matías</div></div></div></td>
+    <td style="font-size:.8rem;color:var(--gris)">Andina / Servicios Mina Andina</td>
+    <td style="font-size:.78rem;color:var(--gris)">Hace 4 días</td>
+    <td><span class="chip vencido" style="font-size:.65rem">No leída</span></td>
+    <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+  </tr><tr>
+    <td><span class="chip critica" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">⊗ Crítica</span></td>
+    <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Vencimiento: Autorización del Trabajador/a para Uso y Almacenamiento de Datos Personales</div><div class="sub">Leiva Campos Andrés — RUT 13.777.888-9</div></td>
+    <td><span class="chip critica" style="font-size:.65rem">Crítica</span></td>
+    <td style="font-size:.8rem;color:var(--gris)">Personal</td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3D62F5,#6B8FFF);color:#fff;display:grid;place-items:center;font-size:.7rem;font-weight:700;flex-shrink:0">L</div><div><div style="font-size:.8rem;font-weight:600;color:var(--txt)">Leiva Campos Andrés</div></div></div></td>
+    <td style="font-size:.8rem;color:var(--gris)">El Teniente / Mantención Minera El Teniente</td>
+    <td style="font-size:.78rem;color:var(--gris)">Hace 4 días</td>
+    <td><span class="chip vencido" style="font-size:.65rem">No leída</span></td>
+    <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+  </tr><tr>
+    <td><span class="chip critica" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">⊗ Crítica</span></td>
+    <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Vencimiento: Cédula de Identidad</div><div class="sub">Peña Castillo Diego — RUT 13.890.777-8</div></td>
+    <td><span class="chip critica" style="font-size:.65rem">Crítica</span></td>
+    <td style="font-size:.8rem;color:var(--gris)">Personal</td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3D62F5,#6B8FFF);color:#fff;display:grid;place-items:center;font-size:.7rem;font-weight:700;flex-shrink:0">P</div><div><div style="font-size:.8rem;font-weight:600;color:var(--txt)">Peña Castillo Diego</div></div></div></td>
+    <td style="font-size:.8rem;color:var(--gris)">Candelaria / Servicios Candelaria</td>
+    <td style="font-size:.78rem;color:var(--gris)">Hace 4 días</td>
+    <td><span class="chip vencido" style="font-size:.65rem">No leída</span></td>
+    <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+  </tr><tr>
+    <td><span class="chip critica" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">⊗ Crítica</span></td>
+    <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Vencimiento: Cédula de Identidad</div><div class="sub">Donoso Araya Francisca — RUT 13.987.777-6</div></td>
+    <td><span class="chip critica" style="font-size:.65rem">Crítica</span></td>
+    <td style="font-size:.8rem;color:var(--gris)">Personal</td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3D62F5,#6B8FFF);color:#fff;display:grid;place-items:center;font-size:.7rem;font-weight:700;flex-shrink:0">D</div><div><div style="font-size:.8rem;font-weight:600;color:var(--txt)">Donoso Araya Francisca</div></div></div></td>
+    <td style="font-size:.8rem;color:var(--gris)">Caserones / Servicios Caserones</td>
+    <td style="font-size:.78rem;color:var(--gris)">Hace 4 días</td>
+    <td><span class="chip vencido" style="font-size:.65rem">No leída</span></td>
+    <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+  </tr><tr>
+    <td><span class="chip critica" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">⊗ Crítica</span></td>
+    <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Vencimiento: Certificado de Competencia</div><div class="sub">Gallardo Meza Sebastián — RUT 13.777.999-1</div></td>
+    <td><span class="chip critica" style="font-size:.65rem">Crítica</span></td>
+    <td style="font-size:.8rem;color:var(--gris)">Personal</td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3D62F5,#6B8FFF);color:#fff;display:grid;place-items:center;font-size:.7rem;font-weight:700;flex-shrink:0">G</div><div><div style="font-size:.8rem;font-weight:600;color:var(--txt)">Gallardo Meza Sebastián</div></div></div></td>
+    <td style="font-size:.8rem;color:var(--gris)">Parque Eólico Antofagasta I / Servicios Parque Eólico Antofagasta I</td>
+    <td style="font-size:.78rem;color:var(--gris)">Hace 4 días</td>
+    <td><span class="chip vencido" style="font-size:.65rem">No leída</span></td>
+    <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+  </tr><tr>
+    <td><span class="chip critica" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">⊗ Crítica</span></td>
+    <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Vencimiento: Permiso de Circulación</div><div class="sub">Mitsubishi L200 4x4 — RUT UVWX-61</div></td>
+    <td><span class="chip critica" style="font-size:.65rem">Crítica</span></td>
+    <td style="font-size:.8rem;color:var(--gris)">Personal</td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3D62F5,#6B8FFF);color:#fff;display:grid;place-items:center;font-size:.7rem;font-weight:700;flex-shrink:0">M</div><div><div style="font-size:.8rem;font-weight:600;color:var(--txt)">Mitsubishi L200 4x4</div></div></div></td>
+    <td style="font-size:.8rem;color:var(--gris)">Los Pelambres / Transporte y Operaciones MLP</td>
+    <td style="font-size:.78rem;color:var(--gris)">Hace 4 días</td>
+    <td><span class="chip vencido" style="font-size:.65rem">No leída</span></td>
+    <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+  </tr><tr>
+    <td><span class="chip critica" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">⊗ Crítica</span></td>
+    <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Vencimiento: Copia del Certificado de Revisión Técnica o Certificado de Homologación</div><div class="sub">Toyota Hilux 4x4 — RUT ANDF-06</div></td>
+    <td><span class="chip critica" style="font-size:.65rem">Crítica</span></td>
+    <td style="font-size:.8rem;color:var(--gris)">Personal</td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3D62F5,#6B8FFF);color:#fff;display:grid;place-items:center;font-size:.7rem;font-weight:700;flex-shrink:0">T</div><div><div style="font-size:.8rem;font-weight:600;color:var(--txt)">Toyota Hilux 4x4</div></div></div></td>
+    <td style="font-size:.8rem;color:var(--gris)">Andina / Servicios Mina Andina</td>
+    <td style="font-size:.78rem;color:var(--gris)">Hace 4 días</td>
+    <td><span class="chip vencido" style="font-size:.65rem">No leída</span></td>
+    <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+  </tr><tr>
+    <td><span class="chip critica" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">⊗ Crítica</span></td>
+    <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Vencimiento: Copia del Certificado de Revisión Técnica o Certificado de Homologación</div><div class="sub">Manitou MT-1440 — RUT TENF-06</div></td>
+    <td><span class="chip critica" style="font-size:.65rem">Crítica</span></td>
+    <td style="font-size:.8rem;color:var(--gris)">Personal</td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3D62F5,#6B8FFF);color:#fff;display:grid;place-items:center;font-size:.7rem;font-weight:700;flex-shrink:0">M</div><div><div style="font-size:.8rem;font-weight:600;color:var(--txt)">Manitou MT-1440</div></div></div></td>
+    <td style="font-size:.8rem;color:var(--gris)">El Teniente / Mantención Minera El Teniente</td>
+    <td style="font-size:.78rem;color:var(--gris)">Hace 4 días</td>
+    <td><span class="chip vencido" style="font-size:.65rem">No leída</span></td>
+    <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+  </tr><tr>
+    <td><span class="chip critica" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">⊗ Crítica</span></td>
+    <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Vencimiento: Permiso de Circulación</div><div class="sub">Toyota Hilux — RUT CANF-06</div></td>
+    <td><span class="chip critica" style="font-size:.65rem">Crítica</span></td>
+    <td style="font-size:.8rem;color:var(--gris)">Personal</td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3D62F5,#6B8FFF);color:#fff;display:grid;place-items:center;font-size:.7rem;font-weight:700;flex-shrink:0">T</div><div><div style="font-size:.8rem;font-weight:600;color:var(--txt)">Toyota Hilux</div></div></div></td>
+    <td style="font-size:.8rem;color:var(--gris)">Candelaria / Servicios Candelaria</td>
+    <td style="font-size:.78rem;color:var(--gris)">Hace 4 días</td>
+    <td><span class="chip vencido" style="font-size:.65rem">No leída</span></td>
+    <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+  </tr><tr>
+    <td><span class="chip critica" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">⊗ Crítica</span></td>
+    <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Vencimiento: Permiso de Circulación</div><div class="sub">JLG Alzahombre — RUT CASF-06</div></td>
+    <td><span class="chip critica" style="font-size:.65rem">Crítica</span></td>
+    <td style="font-size:.8rem;color:var(--gris)">Personal</td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3D62F5,#6B8FFF);color:#fff;display:grid;place-items:center;font-size:.7rem;font-weight:700;flex-shrink:0">J</div><div><div style="font-size:.8rem;font-weight:600;color:var(--txt)">JLG Alzahombre</div></div></div></td>
+    <td style="font-size:.8rem;color:var(--gris)">Caserones / Servicios Caserones</td>
+    <td style="font-size:.78rem;color:var(--gris)">Hace 4 días</td>
+    <td><span class="chip vencido" style="font-size:.65rem">No leída</span></td>
+    <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+  </tr><tr>
+    <td><span class="chip critica" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">⊗ Crítica</span></td>
+    <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Vencimiento: Última Revisión y Mantención (Certificado de Revisión Técnica)</div><div class="sub">Caterpillar 140M — RUT EOLF-06</div></td>
+    <td><span class="chip critica" style="font-size:.65rem">Crítica</span></td>
+    <td style="font-size:.8rem;color:var(--gris)">Personal</td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3D62F5,#6B8FFF);color:#fff;display:grid;place-items:center;font-size:.7rem;font-weight:700;flex-shrink:0">C</div><div><div style="font-size:.8rem;font-weight:600;color:var(--txt)">Caterpillar 140M</div></div></div></td>
+    <td style="font-size:.8rem;color:var(--gris)">Parque Eólico Antofagasta I / Servicios Parque Eólico Antofagasta I</td>
+    <td style="font-size:.78rem;color:var(--gris)">Hace 4 días</td>
+    <td><span class="chip vencido" style="font-size:.65rem">No leída</span></td>
+    <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+  </tr><tr>
+    <td><span class="chip advertencia" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">⚠ Advertencia</span></td>
+    <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Certificado próximo a vencer: Permiso de Circulación</div><div class="sub">Vence en 27 días</div></td>
+    <td><span class="chip advertencia" style="font-size:.65rem">Advertencia</span></td>
+    <td style="font-size:.8rem;color:var(--gris)">Personal</td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3D62F5,#6B8FFF);color:#fff;display:grid;place-items:center;font-size:.7rem;font-weight:700;flex-shrink:0">M</div><div><div style="font-size:.8rem;font-weight:600;color:var(--txt)">Mercedes Actros 2653</div></div></div></td>
+    <td style="font-size:.8rem;color:var(--gris)">Los Pelambres / Transporte y Operaciones MLP</td>
+    <td style="font-size:.78rem;color:var(--gris)">Hace 4 horas</td>
+    <td><span class="chip vencido" style="font-size:.65rem">No leída</span></td>
+    <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+  </tr><tr>
+    <td><span class="chip informativa" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">ℹ Informativa</span></td>
+    <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Documento actualizado</div><div class="sub">Política de Seguridad y Salud — REQ-009</div></td>
+    <td><span class="chip informativa" style="font-size:.65rem">Informativa</span></td>
+    <td style="font-size:.8rem;color:var(--gris)">Personal</td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3D62F5,#6B8FFF);color:#fff;display:grid;place-items:center;font-size:.7rem;font-weight:700;flex-shrink:0">T</div><div><div style="font-size:.8rem;font-weight:600;color:var(--txt)">Todas las faenas</div></div></div></td>
+    <td style="font-size:.8rem;color:var(--gris)">Todas las faenas</td>
+    <td style="font-size:.78rem;color:var(--gris)">Hace 1 día</td>
+    <td><span class="chip activo" style="font-size:.65rem">Leída</span></td>
+    <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+  </tr><tr>
+    <td><span class="chip informativa" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">ℹ Informativa</span></td>
+    <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Reporte generado</div><div class="sub">Cumplimiento de requisitos — todas las faenas</div></td>
+    <td><span class="chip informativa" style="font-size:.65rem">Informativa</span></td>
+    <td style="font-size:.8rem;color:var(--gris)">Personal</td>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3D62F5,#6B8FFF);color:#fff;display:grid;place-items:center;font-size:.7rem;font-weight:700;flex-shrink:0">S</div><div><div style="font-size:.8rem;font-weight:600;color:var(--txt)">Sistema</div></div></div></td>
+    <td style="font-size:.8rem;color:var(--gris)">Todas las faenas</td>
+    <td style="font-size:.78rem;color:var(--gris)">Hace 1 día</td>
+    <td><span class="chip activo" style="font-size:.65rem">Leída</span></td>
+    <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+  </tr></tbody>
+    </table>
+    <div class="tfoot"><span>Mostrando 1 a 27 de 27 alertas</span></div>
+  </div>` }} />
   );
 }

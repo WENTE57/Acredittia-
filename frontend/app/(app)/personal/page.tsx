@@ -1,170 +1,730 @@
+
 "use client";
-import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
-import * as Api from "@/lib/cliente";
-import type { Cargo, Contrato, Pagina, Sujeto } from "@/lib/tipos";
-import { Campo, Chip, Modal, Paginador, Spinner, Vacio } from "@/components/ui";
-
-/** Normaliza como el backend (`checklist.resolver_cargo`) para casar el texto. */
-const normalizar = (s: string) =>
-  s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-export default function PersonalPage() {
-  const [data, setData] = useState<Pagina<Sujeto> | null>(null);
-  const [page, setPage] = useState(1);
-  const [contratos, setContratos] = useState<Contrato[]>([]);
-  const [cargos, setCargos] = useState<Cargo[]>([]);
-  const [filtro, setFiltro] = useState({ search: "", estado: "", contrato_id: "", cargo_id: "" });
-  const [modal, setModal] = useState(false);
-  const [error, setError] = useState("");
-  const [aviso, setAviso] = useState("");
-  const [f, setF] = useState({ contrato_id: "", nombre: "", rut: "", cargo: "", es_conductor: false });
-
-  const cargar = useCallback(() => {
-    Api.personal.listar({
-      page, page_size: 50,
-      search: filtro.search || undefined,
-      estado: (filtro.estado || undefined) as Sujeto["estado"] | undefined,
-      contrato_id: filtro.contrato_id || undefined,
-      cargo_id: filtro.cargo_id || undefined,
-    }).then(setData).catch((e) => setError(Api.mensajeError(e)));
-  }, [page, filtro]);
-
-  useEffect(() => { cargar(); }, [cargar]);
-  useEffect(() => { setPage(1); }, [filtro]);
-
-  useEffect(() => {
-    // Los selectores necesitan la colección completa, no la primera página.
-    Api.paginarTodo<Contrato>((p, ps) => Api.contratos.listar({ page: p, page_size: ps }))
-      .then(setContratos).catch(() => {});
-    Api.paginarTodo<Cargo>((p, ps) => Api.cargos.listar({ page: p, page_size: ps, activo: true }))
-      .then(setCargos).catch(() => {});
-  }, []);
-
-  const items = Api.items(data);
-
-  const crear = async (e: React.FormEvent) => {
-    e.preventDefault(); setError(""); setAviso("");
-    // El cargo se ofrece como selector con texto libre: si el texto coincide con
-    // un cargo del catálogo se manda `cargo_id`; si no, va como texto y el
-    // backend lo crea (y responde `cargo_creado`).
-    const texto = f.cargo.trim();
-    const conocido = cargos.find((c) => normalizar(c.nombre) === normalizar(texto));
-    try {
-      const s = await Api.personal.crear({
-        contrato_id: f.contrato_id,
-        nombre: f.nombre,
-        rut: f.rut,
-        es_conductor: f.es_conductor,
-        ...(conocido ? { cargo_id: conocido.id } : texto ? { cargo: texto } : {}),
-      });
-      setModal(false);
-      setF({ contrato_id: "", nombre: "", rut: "", cargo: "", es_conductor: false });
-      const partes = [`${s.documentos_creados} documentos creados`];
-      if (s.cargo_creado) {
-        partes.push(`se creó el cargo «${s.cargo}» en el catálogo de la empresa: conviene clasificarlo`);
-        Api.paginarTodo<Cargo>((p, ps) => Api.cargos.listar({ page: p, page_size: ps, activo: true }))
-          .then(setCargos).catch(() => {});
-      }
-      if (s.expediente_emsipor_creado) partes.push("se abrió el expediente EMSIPOR");
-      setAviso(`${s.nombre} agregado: ${partes.join("; ")}.`);
-      setPage(1);
-      cargar();
-    } catch (err) { setError(Api.mensajeError(err)); }
-  };
-
-  if (!data) return error ? <p className="p-6 text-red-600">{error}</p> : <Spinner />;
+export default function PersonasPage() {
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-brand">Personal</h1>
-        <button className="btn-primary" onClick={() => setModal(true)}>+ Agregar trabajador</button>
-      </div>
-      {error && <p className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
-      {aviso && <p className="rounded-lg bg-sky-50 px-4 py-2 text-sm text-sky-800">ℹ️ {aviso}</p>}
-
-      <div className="flex flex-wrap gap-3">
-        <input className="input max-w-xs" placeholder="Buscar por nombre o RUT…"
-          value={filtro.search} onChange={(e) => setFiltro({ ...filtro, search: e.target.value })} />
-        <select className="input max-w-[180px]" value={filtro.estado} onChange={(e) => setFiltro({ ...filtro, estado: e.target.value })}>
-          <option value="">Todos los estados</option>
-          <option value="ok">Acreditado</option><option value="proc">En proceso</option>
-          <option value="venc">Vencido</option><option value="falta">Pendiente</option>
-          <option value="baja">De baja</option>
-        </select>
-        <select className="input max-w-[220px]" value={filtro.contrato_id} onChange={(e) => setFiltro({ ...filtro, contrato_id: e.target.value })}>
-          <option value="">Todos los contratos</option>
-          {contratos.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-        </select>
-        <select className="input max-w-[220px]" value={filtro.cargo_id} onChange={(e) => setFiltro({ ...filtro, cargo_id: e.target.value })}>
-          <option value="">Todos los cargos</option>
-          {cargos.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-        </select>
-      </div>
-
-      {items.length === 0 ? (
-        <Vacio mensaje="No hay trabajadores con ese filtro." />
-      ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <table className="tabla">
-            <thead><tr><th>Nombre</th><th>RUT</th><th>Cargo</th><th>Contrato</th><th>Conductor</th><th>Estado</th><th>%</th></tr></thead>
-            <tbody>
-              {items.map((s) => (
-                <tr key={s.id}>
-                  <td><Link className="font-medium text-accent hover:underline" href={`/personal/${s.id}`}>{s.nombre}</Link></td>
-                  <td className="font-mono text-xs">{s.rut}</td>
-                  <td>{s.cargo ?? "—"}</td>
-                  <td className="text-xs">{s.contrato.nombre}</td>
-                  <td>{s.es_conductor ? "🚗" : "—"}</td>
-                  <td><Chip estado={s.estado} /></td>
-                  <td className="font-bold">{s.stats.cumplimiento_pct}%</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      <Paginador page={data.page} totalPaginas={data.total_pages} total={data.total}
-        etiqueta="trabajadores" onPagina={setPage} />
-
-      <Modal abierto={modal} titulo="Agregar trabajador" onCerrar={() => setModal(false)}>
-        <form onSubmit={crear} className="space-y-4">
-          {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-          <Campo etiqueta="Contrato *">
-            <select className="input" value={f.contrato_id} onChange={(e) => setF({ ...f, contrato_id: e.target.value })} required>
-              <option value="">Selecciona…</option>
-              {contratos.map((c) => <option key={c.id} value={c.id}>{c.nombre} — {c.faena.nombre}</option>)}
-            </select>
-          </Campo>
-          <Campo etiqueta="Nombre completo *"><input className="input" value={f.nombre} onChange={(e) => setF({ ...f, nombre: e.target.value })} required /></Campo>
-          <Campo etiqueta="RUT *"><input className="input" placeholder="12.345.678-5" value={f.rut} onChange={(e) => setF({ ...f, rut: e.target.value })} required /></Campo>
-          <Campo etiqueta="Cargo">
-            <input className="input" list="lista-cargos" placeholder="Conductor Nacional"
-              value={f.cargo} onChange={(e) => setF({ ...f, cargo: e.target.value })} />
-            <datalist id="lista-cargos">
-              {cargos.map((c) => (
-                <option key={c.id} value={c.nombre}>
-                  {c.requiere_emsipor ? "Requiere EMSIPOR" : c.categoria}
-                </option>
-              ))}
-            </datalist>
-            <span className="mt-1 block text-xs text-slate-500">
-              Elige uno del catálogo o escribe uno nuevo: si no existe se creará y
-              te lo avisaremos para clasificarlo.
-            </span>
-          </Campo>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={f.es_conductor} onChange={(e) => setF({ ...f, es_conductor: e.target.checked })} />
-            Es conductor (requiere Licencia Interna de Mina — agrega 9 documentos EMSIPOR)
-          </label>
-          <p className="rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-800">
-            ℹ️ Se instanciarán los requisitos de personal del contrato y del cargo
-            {f.es_conductor ? ", más los 9 documentos EMSIPOR" : ""}. El cargo
-            también puede exigir el expediente EMSIPOR por sí solo.
-          </p>
-          <button className="btn-primary w-full py-2.5">Agregar trabajador</button>
-        </form>
-      </Modal>
+    <div dangerouslySetInnerHTML={{ __html: `
+  <div class="view-head">
+    <div><h2>Personal</h2><p>Gestiona y supervisa a todo el personal acreditado de tu empresa en sus diferentes faenas.</p></div>
+    <div class="view-head-actions">
+      <button class="btn-outline" onclick="toast('Exportar — próximamente')">↓ Exportar</button>
+      <button class="btn-primary" onclick="goFaenas()">+ Agregar personal</button>
     </div>
+  </div>
+  <div class="dkpis5">
+    <div class="dkpi5"><div class="ic5">👥</div><div><div class="kt">Total personal</div><div class="kn">58</div><div class="ks">en tu empresa</div></div></div>
+    <div class="dkpi5"><div class="ic5" style="background:rgba(16,185,129,.15)">✅</div><div><div class="kt">Acreditados</div><div class="kn">44</div><div class="ks ok">76% del total</div></div></div>
+    <div class="dkpi5"><div class="ic5" style="background:rgba(245,158,11,.15)">⏳</div><div><div class="kt">Por vencer (próx. 30 días)</div><div class="kn">0</div><div class="ks warn">0% del total</div></div></div>
+    <div class="dkpi5"><div class="ic5" style="background:rgba(239,68,68,.15)">❌</div><div><div class="kt">Vencidos</div><div class="kn">6</div><div class="ks bad">10% del total</div></div></div>
+    <div class="dkpi5"><div class="ic5" style="background:rgba(148,163,184,.15)">📋</div><div><div class="kt">Sin asignación a faena</div><div class="kn">8</div><div class="ks">14% del total</div></div></div>
+  </div>
+  <div class="view-filters">
+    <input class="view-search" placeholder="Buscar por nombre, RUT o cargo..." oninput="filterTable(this.value,'pers-tbl')">
+    <select class="view-select"><option>Estado: Todos</option><option>Acreditado</option><option>Por vencer</option><option>Vencido</option></select>
+    <select class="view-select"><option>Faena: Todas</option></select>
+    <select class="view-select"><option>Cargo: Todos</option></select>
+  </div>
+  <div class="vtable-wrap">
+    <table class="vtable" id="pers-tbl">
+      <thead><tr><th>Trabajador</th><th>RUT</th><th>Cargo</th><th>Faenas asignadas</th><th>Estado</th><th>Vencimiento próximo</th><th>Certificaciones principales</th><th>Acciones</th></tr></thead>
+      <tbody><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#2448E0">RM</div>
+        <div><div class="ct-link" onclick="openSubject('lp1','personal','dp0')">Ramírez Mondaca Carlos</div><div class="sub">15.234.678-9</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">15.234.678-9</td>
+      <td style="font-size:.8rem">Conductor Nacional</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Los Pelambres</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span><span class="cert-tag">Contrato de Tr</span></td>
+      <td><span class="act-ico" onclick="openSubject('lp1','personal','dp0')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#3D62F5">CS</div>
+        <div><div class="ct-link" onclick="openSubject('lp1','personal','dp1')">Contreras Sepúlveda Diego</div><div class="sub">14.123.456-K</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">14.123.456-K</td>
+      <td style="font-size:.8rem">Conductor Nacional</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Los Pelambres</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">08 jul 2026</div><div class="sub">37 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span></td>
+      <td><span class="act-ico" onclick="openSubject('lp1','personal','dp1')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#1a3db8">GP</div>
+        <div><div class="ct-link" onclick="openSubject('lp1','personal','dp2')">González Pizarro Roberto</div><div class="sub">12.111.222-3</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">12.111.222-3</td>
+      <td style="font-size:.8rem">Conductor Nacional</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Los Pelambres</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span><span class="cert-tag">Contrato de Tr</span></td>
+      <td><span class="act-ico" onclick="openSubject('lp1','personal','dp2')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#4F75FF">HC</div>
+        <div><div class="ct-link" onclick="openSubject('lp1','personal','dp3')">Herrera Cáceres Rodrigo</div><div class="sub">13.890.234-5</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">13.890.234-5</td>
+      <td style="font-size:.8rem">Conductor Nacional</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Los Pelambres</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">17 dic 2026</div><div class="sub">199 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span></td>
+      <td><span class="act-ico" onclick="openSubject('lp1','personal','dp3')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#1E3A8A">PL</div>
+        <div><div class="ct-link" onclick="openSubject('lp1','personal','dp4')">Pinto Leiva Mauricio</div><div class="sub">16.450.789-2</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">16.450.789-2</td>
+      <td style="font-size:.8rem">Conductor Pesado</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Los Pelambres</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span><span class="cert-tag">Contrato de Tr</span></td>
+      <td><span class="act-ico" onclick="openSubject('lp1','personal','dp4')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#163278">AF</div>
+        <div><div class="ct-link" onclick="openSubject('lp1','personal','dp5')">Araya Fuenzalida Gonzalo</div><div class="sub">17.891.234-6</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">17.891.234-6</td>
+      <td style="font-size:.8rem">Conductor Pesado</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Los Pelambres</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span><span class="cert-tag">Contrato de Tr</span></td>
+      <td><span class="act-ico" onclick="openSubject('lp1','personal','dp5')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#2448E0">FG</div>
+        <div><div class="ct-link" onclick="openSubject('lp1','personal','dp6')">Fuentes Gutiérrez Ana María</div><div class="sub">16.345.789-0</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">16.345.789-0</td>
+      <td style="font-size:.8rem">Supervisora HSE</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Los Pelambres</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span><span class="cert-tag">Contrato de Tr</span></td>
+      <td><span class="act-ico" onclick="openSubject('lp1','personal','dp6')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#3D62F5">VM</div>
+        <div><div class="ct-link" onclick="openSubject('lp1','personal','dp7')">Valenzuela Mora Patricia</div><div class="sub">17.456.890-1</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">17.456.890-1</td>
+      <td style="font-size:.8rem">Prevencionista</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Los Pelambres</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span><span class="cert-tag">Contrato de Tr</span></td>
+      <td><span class="act-ico" onclick="openSubject('lp1','personal','dp7')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#1a3db8">SJ</div>
+        <div><div class="ct-link" onclick="openSubject('lp1','personal','dp8')">Soto Jiménez Claudia</div><div class="sub">19.012.456-7</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">19.012.456-7</td>
+      <td style="font-size:.8rem">Administradora Contrato</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Los Pelambres</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span><span class="cert-tag">Contrato de Tr</span></td>
+      <td><span class="act-ico" onclick="openSubject('lp1','personal','dp8')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#4F75FF">CV</div>
+        <div><div class="ct-link" onclick="openSubject('lp1','personal','dp9')">Castro Vera Marcelo</div><div class="sub">16.789.123-4</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">16.789.123-4</td>
+      <td style="font-size:.8rem">Mecánico Industrial</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Los Pelambres</div></td>
+      <td><span class="chip vencido">Vencido</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:#f87171">18 may 2026</div><div class="sub">hace 14 días</div></td>
+      <td><span class="cert-tag">Contrato de Tr</span><span class="cert-tag">Certificado de</span></td>
+      <td><span class="act-ico" onclick="openSubject('lp1','personal','dp9')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#1E3A8A">MC</div>
+        <div><div class="ct-link" onclick="openSubject('lp1','personal','dp10')">Muñoz Carrasco Felipe</div><div class="sub">18.567.901-2</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">18.567.901-2</td>
+      <td style="font-size:.8rem">Operador de Módulo</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Los Pelambres</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span><span class="cert-tag">Contrato de Tr</span></td>
+      <td><span class="act-ico" onclick="openSubject('lp1','personal','dp10')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#163278">LA</div>
+        <div><div class="ct-link" onclick="openSubject('lp1','personal','dp11')">Lagos Arenas Valentina</div><div class="sub">18.222.333-4</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">18.222.333-4</td>
+      <td style="font-size:.8rem">Supervisora de Turno</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Los Pelambres</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span><span class="cert-tag">Contrato de Tr</span></td>
+      <td><span class="act-ico" onclick="openSubject('lp1','personal','dp11')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#2448E0">ER</div>
+        <div><div class="ct-link" onclick="openSubject('lp1','personal','dp12')">Espinoza Rojas Hernán</div><div class="sub">15.678.901-3</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">15.678.901-3</td>
+      <td style="font-size:.8rem">Mecánico Diesel</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Los Pelambres</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span><span class="cert-tag">Contrato de Tr</span></td>
+      <td><span class="act-ico" onclick="openSubject('lp1','personal','dp12')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#3D62F5">MC</div>
+        <div><div class="ct-link" onclick="openSubject('lp1','personal','dp13')">Morales Candia Javiera</div><div class="sub">17.123.456-8</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">17.123.456-8</td>
+      <td style="font-size:.8rem">Enfermera Faena</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Los Pelambres</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span><span class="cert-tag">Contrato de Tr</span></td>
+      <td><span class="act-ico" onclick="openSubject('lp1','personal','dp13')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#1a3db8">RB</div>
+        <div><div class="ct-link" onclick="openSubject('lp1','personal','dp14')">Reyes Bustamante Jorge</div><div class="sub">14.567.890-5</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">14.567.890-5</td>
+      <td style="font-size:.8rem">Operador Cargador Frontal</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Los Pelambres</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">15 ago 2026</div><div class="sub">75 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span></td>
+      <td><span class="act-ico" onclick="openSubject('lp1','personal','dp14')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#4F75FF">NP</div>
+        <div><div class="ct-link" onclick="openSubject('lp1','personal','dp15')">Núñez Paredes Francisca</div><div class="sub">19.345.678-1</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">19.345.678-1</td>
+      <td style="font-size:.8rem">Supervisora Operaciones</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Los Pelambres</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span><span class="cert-tag">Contrato de Tr</span></td>
+      <td><span class="act-ico" onclick="openSubject('lp1','personal','dp15')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#1E3A8A">IT</div>
+        <div><div class="ct-link" onclick="openSubject('lp1','personal','dp16')">Ibáñez Tapia Cristóbal</div><div class="sub">16.901.234-7</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">16.901.234-7</td>
+      <td style="font-size:.8rem">Técnico Electromecánico</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Los Pelambres</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span><span class="cert-tag">Contrato de Tr</span></td>
+      <td><span class="act-ico" onclick="openSubject('lp1','personal','dp16')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#163278">VS</div>
+        <div><div class="ct-link" onclick="openSubject('lp1','personal','dp17')">Vera Salinas Amanda</div><div class="sub">15.456.789-0</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">15.456.789-0</td>
+      <td style="font-size:.8rem">Coordinadora Logística</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Los Pelambres</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">17 dic 2026</div><div class="sub">199 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span></td>
+      <td><span class="act-ico" onclick="openSubject('lp1','personal','dp17')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#2448E0">BC</div>
+        <div><div class="ct-link" onclick="openSubject('and1','personal','dp18')">Bravo Contreras Manuel</div><div class="sub">14.567.123-8</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">14.567.123-8</td>
+      <td style="font-size:.8rem">Supervisor de Terreno</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Andina</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Autorización d</span><span class="cert-tag">Certificado de</span></td>
+      <td><span class="act-ico" onclick="openSubject('and1','personal','dp18')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#3D62F5">SM</div>
+        <div><div class="ct-link" onclick="openSubject('and1','personal','dp19')">Salazar Muñoz Pamela</div><div class="sub">15.678.234-9</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">15.678.234-9</td>
+      <td style="font-size:.8rem">Prevencionista de Riesgos</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Andina</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Autorización d</span><span class="cert-tag">Certificado de</span></td>
+      <td><span class="act-ico" onclick="openSubject('and1','personal','dp19')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#1a3db8">TI</div>
+        <div><div class="ct-link" onclick="openSubject('and1','personal','dp20')">Toledo Ibarra Cristian</div><div class="sub">16.789.345-0</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">16.789.345-0</td>
+      <td style="font-size:.8rem">Mecánico Industrial</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Andina</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">05 ago 2026</div><div class="sub">65 días</div></td>
+      <td><span class="cert-tag">Autorización d</span></td>
+      <td><span class="act-ico" onclick="openSubject('and1','personal','dp20')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#4F75FF">PL</div>
+        <div><div class="ct-link" onclick="openSubject('and1','personal','dp21')">Pizarro León Fernanda</div><div class="sub">17.890.456-1</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">17.890.456-1</td>
+      <td style="font-size:.8rem">Administradora de Contrato</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Andina</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Autorización d</span><span class="cert-tag">Certificado de</span></td>
+      <td><span class="act-ico" onclick="openSubject('and1','personal','dp21')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#1E3A8A">VC</div>
+        <div><div class="ct-link" onclick="openSubject('and1','personal','dp22')">Vargas Cortés Ignacio</div><div class="sub">18.901.567-2</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">18.901.567-2</td>
+      <td style="font-size:.8rem">Operador de Equipos</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Andina</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">17 dic 2026</div><div class="sub">199 días</div></td>
+      <td><span class="cert-tag">Autorización d</span></td>
+      <td><span class="act-ico" onclick="openSubject('and1','personal','dp22')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#163278">SM</div>
+        <div><div class="ct-link" onclick="openSubject('and1','personal','dp23')">Sáez Molina Daniela</div><div class="sub">19.012.678-3</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">19.012.678-3</td>
+      <td style="font-size:.8rem">Enfermera de Faena</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Andina</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Autorización d</span><span class="cert-tag">Certificado de</span></td>
+      <td><span class="act-ico" onclick="openSubject('and1','personal','dp23')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#2448E0">RF</div>
+        <div><div class="ct-link" onclick="openSubject('and1','personal','dp24')">Rojas Fuentes Matías</div><div class="sub">13.456.789-4</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">13.456.789-4</td>
+      <td style="font-size:.8rem">Técnico Eléctrico</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Andina</div></td>
+      <td><span class="chip vencido">Vencido</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:#f87171">18 may 2026</div><div class="sub">hace 14 días</div></td>
+      <td><span class="cert-tag">Certificado de</span><span class="cert-tag">Anexo de Exclu</span></td>
+      <td><span class="act-ico" onclick="openSubject('and1','personal','dp24')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#3D62F5">CS</div>
+        <div><div class="ct-link" onclick="openSubject('and1','personal','dp25')">Cárdenas Silva Josefa</div><div class="sub">12.345.678-5</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">12.345.678-5</td>
+      <td style="font-size:.8rem">Supervisora HSE</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Andina</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Autorización d</span><span class="cert-tag">Certificado de</span></td>
+      <td><span class="act-ico" onclick="openSubject('and1','personal','dp25')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#1a3db8">FR</div>
+        <div><div class="ct-link" onclick="openSubject('ten1','personal','dp26')">Fuentealba Rojas Ricardo</div><div class="sub">14.111.222-3</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">14.111.222-3</td>
+      <td style="font-size:.8rem">Supervisor de Mantención</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">El Teniente</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Autorización d</span><span class="cert-tag">Certificado de</span></td>
+      <td><span class="act-ico" onclick="openSubject('ten1','personal','dp26')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#4F75FF">CB</div>
+        <div><div class="ct-link" onclick="openSubject('ten1','personal','dp27')">Cifuentes Bravo Carla</div><div class="sub">15.222.333-4</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">15.222.333-4</td>
+      <td style="font-size:.8rem">Prevencionista</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">El Teniente</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Autorización d</span><span class="cert-tag">Certificado de</span></td>
+      <td><span class="act-ico" onclick="openSubject('ten1','personal','dp27')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#1E3A8A">AT</div>
+        <div><div class="ct-link" onclick="openSubject('ten1','personal','dp28')">Aravena Torres Nicolás</div><div class="sub">16.333.444-5</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">16.333.444-5</td>
+      <td style="font-size:.8rem">Operador de Grúa</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">El Teniente</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">12 ago 2026</div><div class="sub">72 días</div></td>
+      <td><span class="cert-tag">Autorización d</span></td>
+      <td><span class="act-ico" onclick="openSubject('ten1','personal','dp28')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#163278">BH</div>
+        <div><div class="ct-link" onclick="openSubject('ten1','personal','dp29')">Bustos Herrera Camila</div><div class="sub">17.444.555-6</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">17.444.555-6</td>
+      <td style="font-size:.8rem">Administrativa de Contrato</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">El Teniente</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Autorización d</span><span class="cert-tag">Certificado de</span></td>
+      <td><span class="act-ico" onclick="openSubject('ten1','personal','dp29')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#2448E0">SR</div>
+        <div><div class="ct-link" onclick="openSubject('ten1','personal','dp30')">Sandoval Reyes Patricio</div><div class="sub">18.555.666-7</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">18.555.666-7</td>
+      <td style="font-size:.8rem">Mecánico Diesel</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">El Teniente</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">17 dic 2026</div><div class="sub">199 días</div></td>
+      <td><span class="cert-tag">Autorización d</span></td>
+      <td><span class="act-ico" onclick="openSubject('ten1','personal','dp30')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#3D62F5">GE</div>
+        <div><div class="ct-link" onclick="openSubject('ten1','personal','dp31')">Godoy Espinoza Valentina</div><div class="sub">19.666.777-8</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">19.666.777-8</td>
+      <td style="font-size:.8rem">Supervisora de Turno</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">El Teniente</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Autorización d</span><span class="cert-tag">Certificado de</span></td>
+      <td><span class="act-ico" onclick="openSubject('ten1','personal','dp31')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#1a3db8">LC</div>
+        <div><div class="ct-link" onclick="openSubject('ten1','personal','dp32')">Leiva Campos Andrés</div><div class="sub">13.777.888-9</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">13.777.888-9</td>
+      <td style="font-size:.8rem">Técnico Electromecánico</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">El Teniente</div></td>
+      <td><span class="chip vencido">Vencido</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:#f87171">18 may 2026</div><div class="sub">hace 14 días</div></td>
+      <td><span class="cert-tag">Certificado de</span><span class="cert-tag">Anexo de Exclu</span></td>
+      <td><span class="act-ico" onclick="openSubject('ten1','personal','dp32')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#4F75FF">PV</div>
+        <div><div class="ct-link" onclick="openSubject('ten1','personal','dp33')">Paredes Vidal Consuelo</div><div class="sub">12.888.999-0</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">12.888.999-0</td>
+      <td style="font-size:.8rem">Enfermera de Faena</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">El Teniente</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Autorización d</span><span class="cert-tag">Certificado de</span></td>
+      <td><span class="act-ico" onclick="openSubject('ten1','personal','dp33')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#1E3A8A">EM</div>
+        <div><div class="ct-link" onclick="openSubject('can2','personal','dp34')">Escobar Muñoz Waldo</div><div class="sub">14.234.111-2</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">14.234.111-2</td>
+      <td style="font-size:.8rem">Supervisor de Operaciones</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Candelaria</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span><span class="cert-tag">Contrato de Tr</span></td>
+      <td><span class="act-ico" onclick="openSubject('can2','personal','dp34')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#163278">FR</div>
+        <div><div class="ct-link" onclick="openSubject('can2','personal','dp35')">Fernández Rojas Bárbara</div><div class="sub">15.345.222-3</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">15.345.222-3</td>
+      <td style="font-size:.8rem">Prevencionista de Riesgos</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Candelaria</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span><span class="cert-tag">Contrato de Tr</span></td>
+      <td><span class="act-ico" onclick="openSubject('can2','personal','dp35')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#2448E0">CV</div>
+        <div><div class="ct-link" onclick="openSubject('can2','personal','dp36')">Contreras Vega Sebastián</div><div class="sub">16.456.333-4</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">16.456.333-4</td>
+      <td style="font-size:.8rem">Operador de Equipos</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Candelaria</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">02 ago 2026</div><div class="sub">62 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span></td>
+      <td><span class="act-ico" onclick="openSubject('can2','personal','dp36')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#3D62F5">MA</div>
+        <div><div class="ct-link" onclick="openSubject('can2','personal','dp37')">Mora Aguilera Javiera</div><div class="sub">17.567.444-5</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">17.567.444-5</td>
+      <td style="font-size:.8rem">Administradora de Contrato</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Candelaria</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span><span class="cert-tag">Contrato de Tr</span></td>
+      <td><span class="act-ico" onclick="openSubject('can2','personal','dp37')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#1a3db8">RS</div>
+        <div><div class="ct-link" onclick="openSubject('can2','personal','dp38')">Riquelme Soto Álvaro</div><div class="sub">18.678.555-6</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">18.678.555-6</td>
+      <td style="font-size:.8rem">Mecánico Industrial</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Candelaria</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">17 dic 2026</div><div class="sub">199 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span></td>
+      <td><span class="act-ico" onclick="openSubject('can2','personal','dp38')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#4F75FF">VB</div>
+        <div><div class="ct-link" onclick="openSubject('can2','personal','dp39')">Valdés Bravo Constanza</div><div class="sub">19.789.666-7</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">19.789.666-7</td>
+      <td style="font-size:.8rem">Supervisora HSE</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Candelaria</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span><span class="cert-tag">Contrato de Tr</span></td>
+      <td><span class="act-ico" onclick="openSubject('can2','personal','dp39')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#1E3A8A">PC</div>
+        <div><div class="ct-link" onclick="openSubject('can2','personal','dp40')">Peña Castillo Diego</div><div class="sub">13.890.777-8</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">13.890.777-8</td>
+      <td style="font-size:.8rem">Técnico Eléctrico</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Candelaria</div></td>
+      <td><span class="chip vencido">Vencido</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:#f87171">18 may 2026</div><div class="sub">hace 14 días</div></td>
+      <td><span class="cert-tag">Contrato de Tr</span><span class="cert-tag">Certificado de</span></td>
+      <td><span class="act-ico" onclick="openSubject('can2','personal','dp40')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#163278">GL</div>
+        <div><div class="ct-link" onclick="openSubject('can2','personal','dp41')">Guzmán Lara Fernanda</div><div class="sub">12.901.888-9</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">12.901.888-9</td>
+      <td style="font-size:.8rem">Enfermera de Faena</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Candelaria</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span><span class="cert-tag">Contrato de Tr</span></td>
+      <td><span class="act-ico" onclick="openSubject('can2','personal','dp41')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#2448E0">MT</div>
+        <div><div class="ct-link" onclick="openSubject('cas1','personal','dp42')">Muñoz Torres Ignacia</div><div class="sub">14.321.111-K</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">14.321.111-K</td>
+      <td style="font-size:.8rem">Supervisora de Terreno</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Caserones</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span><span class="cert-tag">Contrato de Tr</span></td>
+      <td><span class="act-ico" onclick="openSubject('cas1','personal','dp42')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#3D62F5">SP</div>
+        <div><div class="ct-link" onclick="openSubject('cas1','personal','dp43')">Salinas Ponce Rodrigo</div><div class="sub">15.432.222-1</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">15.432.222-1</td>
+      <td style="font-size:.8rem">Prevencionista</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Caserones</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span><span class="cert-tag">Contrato de Tr</span></td>
+      <td><span class="act-ico" onclick="openSubject('cas1','personal','dp43')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#1a3db8">HD</div>
+        <div><div class="ct-link" onclick="openSubject('cas1','personal','dp44')">Herrera Díaz Josefina</div><div class="sub">16.543.333-2</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">16.543.333-2</td>
+      <td style="font-size:.8rem">Operadora de Equipos</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Caserones</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">09 ago 2026</div><div class="sub">69 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span></td>
+      <td><span class="act-ico" onclick="openSubject('cas1','personal','dp44')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#4F75FF">CR</div>
+        <div><div class="ct-link" onclick="openSubject('cas1','personal','dp45')">Campos Rivas Matías</div><div class="sub">17.654.444-3</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">17.654.444-3</td>
+      <td style="font-size:.8rem">Administrativo de Contrato</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Caserones</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span><span class="cert-tag">Contrato de Tr</span></td>
+      <td><span class="act-ico" onclick="openSubject('cas1','personal','dp45')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#1E3A8A">VC</div>
+        <div><div class="ct-link" onclick="openSubject('cas1','personal','dp46')">Vera Contreras Nicole</div><div class="sub">18.765.555-4</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">18.765.555-4</td>
+      <td style="font-size:.8rem">Mecánica Diesel</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Caserones</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">17 dic 2026</div><div class="sub">199 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span></td>
+      <td><span class="act-ico" onclick="openSubject('cas1','personal','dp46')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#163278">AF</div>
+        <div><div class="ct-link" onclick="openSubject('cas1','personal','dp47')">Alarcón Fuentes Pablo</div><div class="sub">19.876.666-5</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">19.876.666-5</td>
+      <td style="font-size:.8rem">Supervisor HSE</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Caserones</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span><span class="cert-tag">Contrato de Tr</span></td>
+      <td><span class="act-ico" onclick="openSubject('cas1','personal','dp47')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#2448E0">DA</div>
+        <div><div class="ct-link" onclick="openSubject('cas1','personal','dp48')">Donoso Araya Francisca</div><div class="sub">13.987.777-6</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">13.987.777-6</td>
+      <td style="font-size:.8rem">Técnica Electromecánica</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Caserones</div></td>
+      <td><span class="chip vencido">Vencido</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:#f87171">18 may 2026</div><div class="sub">hace 14 días</div></td>
+      <td><span class="cert-tag">Contrato de Tr</span><span class="cert-tag">Certificado de</span></td>
+      <td><span class="act-ico" onclick="openSubject('cas1','personal','dp48')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#3D62F5">RM</div>
+        <div><div class="ct-link" onclick="openSubject('cas1','personal','dp49')">Rivas Molina Tomás</div><div class="sub">12.098.888-7</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">12.098.888-7</td>
+      <td style="font-size:.8rem">Enfermero de Faena</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Caserones</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Cédula de Iden</span><span class="cert-tag">Contrato de Tr</span></td>
+      <td><span class="act-ico" onclick="openSubject('cas1','personal','dp49')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#1a3db8">VM</div>
+        <div><div class="ct-link" onclick="openSubject('eol1','personal','dp50')">Vergara Muñoz Ignacio</div><div class="sub">14.111.333-5</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">14.111.333-5</td>
+      <td style="font-size:.8rem">Técnico de Turbinas Eólicas</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Parque Eólico Antofagasta I</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Certificado de</span><span class="cert-tag">Contrato Indiv</span></td>
+      <td><span class="act-ico" onclick="openSubject('eol1','personal','dp50')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#4F75FF">TA</div>
+        <div><div class="ct-link" onclick="openSubject('eol1','personal','dp51')">Torres Aliaga Marcela</div><div class="sub">15.222.444-6</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">15.222.444-6</td>
+      <td style="font-size:.8rem">Supervisora HSE</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Parque Eólico Antofagasta I</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Certificado de</span><span class="cert-tag">Contrato Indiv</span></td>
+      <td><span class="act-ico" onclick="openSubject('eol1','personal','dp51')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#1E3A8A">BR</div>
+        <div><div class="ct-link" onclick="openSubject('eol1','personal','dp52')">Bahamóndez Ruiz Esteban</div><div class="sub">16.333.555-7</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">16.333.555-7</td>
+      <td style="font-size:.8rem">Operador de Grúa Telescópica</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Parque Eólico Antofagasta I</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">06 ago 2026</div><div class="sub">66 días</div></td>
+      <td><span class="cert-tag">Certificado de</span></td>
+      <td><span class="act-ico" onclick="openSubject('eol1','personal','dp52')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#163278">CR</div>
+        <div><div class="ct-link" onclick="openSubject('eol1','personal','dp53')">Concha Rivas Yasna</div><div class="sub">17.444.666-8</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">17.444.666-8</td>
+      <td style="font-size:.8rem">Electricista Industrial</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Parque Eólico Antofagasta I</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Certificado de</span><span class="cert-tag">Contrato Indiv</span></td>
+      <td><span class="act-ico" onclick="openSubject('eol1','personal','dp53')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#2448E0">OP</div>
+        <div><div class="ct-link" onclick="openSubject('eol1','personal','dp54')">Olivares Prieto Ricardo</div><div class="sub">18.555.777-9</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">18.555.777-9</td>
+      <td style="font-size:.8rem">Administrador de Contrato</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Parque Eólico Antofagasta I</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Certificado de</span><span class="cert-tag">Contrato Indiv</span></td>
+      <td><span class="act-ico" onclick="openSubject('eol1','personal','dp54')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#3D62F5">FC</div>
+        <div><div class="ct-link" onclick="openSubject('eol1','personal','dp55')">Farías Contreras Camila</div><div class="sub">19.666.888-0</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">19.666.888-0</td>
+      <td style="font-size:.8rem">Prevencionista de Riesgos</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Parque Eólico Antofagasta I</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">17 dic 2026</div><div class="sub">199 días</div></td>
+      <td><span class="cert-tag">Certificado de</span></td>
+      <td><span class="act-ico" onclick="openSubject('eol1','personal','dp55')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#1a3db8">GM</div>
+        <div><div class="ct-link" onclick="openSubject('eol1','personal','dp56')">Gallardo Meza Sebastián</div><div class="sub">13.777.999-1</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">13.777.999-1</td>
+      <td style="font-size:.8rem">Técnico en Instrumentación y Control</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Parque Eólico Antofagasta I</div></td>
+      <td><span class="chip vencido">Vencido</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:#f87171">18 may 2026</div><div class="sub">hace 14 días</div></td>
+      <td><span class="cert-tag">Contrato Indiv</span><span class="cert-tag">Examen de Alco</span></td>
+      <td><span class="act-ico" onclick="openSubject('eol1','personal','dp56')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr><tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="p-row-av" style="background:#4F75FF">RC</div>
+        <div><div class="ct-link" onclick="openSubject('eol1','personal','dp57')">Riveros Campos Antonia</div><div class="sub">12.888.111-2</div></div>
+      </div></td>
+      <td style="font-size:.8rem;color:var(--gris)">12.888.111-2</td>
+      <td style="font-size:.8rem">Jefa de Terreno</td>
+      <td style="font-size:.8rem">1 faena<div class="sub" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Parque Eólico Antofagasta I</div></td>
+      <td><span class="chip activo">Acreditado</span></td>
+      <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
+      <td><span class="cert-tag">Certificado de</span><span class="cert-tag">Contrato Indiv</span></td>
+      <td><span class="act-ico" onclick="openSubject('eol1','personal','dp57')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
+    </tr></tbody>
+    </table>
+    <div class="tfoot"><span>Mostrando 1 a 58 de 58 trabajadores</span><span style="color:var(--azul)">10 por página</span></div>
+  </div>` }} />
   );
 }
