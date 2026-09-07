@@ -1,27 +1,34 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+@import './styles-prototipo.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  body {
+    @apply bg-bg text-txt font-sans antialiased;
+    line-height: 1.55;
+  }
+  h1, h2, h3, h4 {
+    @apply font-display tracking-tight;
+  }
+}
+
 @layer components {
   .btn-primary {
-    @apply rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-accent/90 disabled:opacity-50;
+    @apply rounded-xl bg-accent px-5 py-2.5 font-semibold text-white transition hover:bg-cyan-d disabled:opacity-50;
   }
   .btn-ghost {
-    @apply rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600 transition hover:bg-slate-100;
+    @apply rounded-xl border border-linea bg-transparent px-5 py-2.5 font-semibold text-brand transition hover:bg-bg;
   }
   .input {
-    @apply w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent;
+    @apply w-full rounded-xl border border-linea px-4 py-3 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent;
   }
-  .tabla {
-    @apply w-full text-left text-sm;
+  .linput {
+    @apply w-full px-4 py-3 bg-[#080E1C] border border-[#1E3A5F] rounded-xl text-[#F1F5F9] text-[0.95rem] focus:border-accent focus:outline-none mb-3 box-border;
   }
-  .tabla th {
-    @apply border-b border-slate-200 bg-slate-50 px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-500;
-  }
-  .tabla td {
-    @apply border-b border-slate-100 px-4 py-2.5 text-slate-700;
-  }
-  .tabla tbody tr {
-    @apply hover:bg-slate-50;
+  .lbtn {
+    @apply w-full p-3.5 bg-accent text-white rounded-xl text-base font-bold transition hover:bg-cyan-d disabled:opacity-50 mt-1;
   }
 }
