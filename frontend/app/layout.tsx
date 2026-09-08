@@ -6,10 +6,16 @@ export const metadata: Metadata = {
   description: "Acreditación de contratistas para faenas mineras y energéticas",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="es">
-      <body className="bg-slate-100 text-slate-900 antialiased">{children}</body>
+      <body className="bg-slate-100 text-slate-900 antialiased">
+        {children}
+      </body>
     </html>
   );
 }

@@ -19,11 +19,17 @@ export default function BottomNav() {
         {items.map((item) => {
           const active = path.startsWith(item.href) ? "active" : "";
           return (
-            <Link key={item.href} href={item.href} className={`abn-item ${active}`}>
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`abn-item ${active}`}
+            >
               <span className="abn-ico">{item.icono}</span>
               {item.nombre}
               {item.href === "/alertas" && (
-                <span className="abn-badge" style={{ display: 'none' }}>!</span>
+                <span className="abn-badge" style={{ display: "none" }}>
+                  !
+                </span>
               )}
             </Link>
           );
