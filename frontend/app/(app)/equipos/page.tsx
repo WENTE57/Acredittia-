@@ -65,11 +65,12 @@ export default function EquiposPage() {
       <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">en 149 días</div></td>
       <td><span class="cert-tag">Permiso de C</span><span class="cert-tag">SOAP</span></td>
       <td><span class="act-ico" onclick="openSubject('lp1','equipo','de2')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
-    </tr><tr>
-      <td><div style="display:flex;align-items:center;gap:10px">
-        <div style="width:36px;height:36px;border-radius:10px;background:#EEF2FF;display:grid;place-items:center;font-size:1.1rem;flex-shrink:0">🔧</div>
-        <div><div class="ct-link" onclick="openSubject('lp1','equipo','de3')">Randon SR PT CS 0230</div><div class="sub">Código: DE3</div></div>
-      </div></td>
+    </tr></tbody>
+    <tbody id="eq-extra" style="display:none"><tr>
+        <td><div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:10px;background:#EEF2FF;display:grid;place-items:center;font-size:1.1rem;flex-shrink:0">🔧</div>
+          <div><div class="ct-link" onclick="openSubject('lp1','equipo','de3')">Randon SR PT CS 0230</div><div class="sub">Código: DE3</div></div>
+        </div></td>
       <td style="font-size:.82rem;font-weight:600;color:var(--cyan-d)">IJKL-31</td>
       <td style="font-size:.8rem;color:var(--gris)">Semirremolque</td>
       <td style="font-size:.8rem">Semirremolque</td>
@@ -612,8 +613,15 @@ export default function EquiposPage() {
       <td><span class="cert-tag">Seguro Oblig</span><span class="cert-tag">Certificado </span></td>
       <td><span class="act-ico" onclick="openSubject('eol1','equipo','de44')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
     </tr></tbody>
+    <tfoot>
+      <tr>
+        <td colspan="10" style="text-align:center;padding:12px;border-top:1px solid var(--linea)">
+          <button class="fold-btn" onclick="toggleFold('eq-extra', this, '▼ Mostrar los 42 equipos restantes...', '▲ Mostrar menos')">▼ Mostrar los 42 equipos restantes...</button>
+        </td>
+      </tr>
+    </tfoot>
     </table>
-    <div class="tfoot"><span>Mostrando 1 a 45 de 45 equipos</span><span style="color:var(--azul)">10 por página</span></div>
-  </div>` }} />
+    <div class="tfoot"><span>Mostrando 1 a 45 de 45 equipos</span><span style="color:var(--azul)">45 registros totales</span></div>
+    </div>` }} />
   );
 }

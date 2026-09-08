@@ -1,15 +1,54 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
+  const [tab, setTab] = useState<"login" | "register">("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [empresa, setEmpresa] = useState("");
+  const [rut, setRut] = useState("");
+  const [err, setErr] = useState("");
+
+  React.useEffect(() => {
+    router.prefetch("/dashboard");
+    router.prefetch("/");
+  }, [router]);
+
+  const handleLogin = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const userEmail = email.trim() || "demo@acredittia.cl";
+    const demoUser = {
+      id: "usr_demo",
+      nombre: userEmail.split("@")[0] || "Usuario Demo",
+      email: userEmail,
+      role: "usuario",
+      company: { id: "emp_1", nombre: "Empresa Proveedora" },
+    };
+    localStorage.setItem("acredittia_user", JSON.stringify(demoUser));
+    router.push("/dashboard");
+  };
+
+  const handleRegister = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const demoUser = {
+      id: "usr_demo",
+      nombre: empresa.trim() || "Nueva Empresa SpA",
+      email: email.trim() || "contacto@empresa.cl",
+      role: "usuario",
+      company: { id: "emp_1", nombre: empresa.trim() || "Nueva Empresa SpA" },
+    };
+    localStorage.setItem("acredittia_user", JSON.stringify(demoUser));
+    router.push("/dashboard");
+  };
+
   return (
     <>
       {/* ================= LOGIN SCREEN ================= */}
-      <div id="login-screen" className="hidden">
+      <div id="login-screen">
         <div className="lcard">
-          <div className="llogo">
+          <div className="llogo" onClick={() => router.push("/")} style={{ cursor: "pointer" }}>
             <img
               src="/acredittia-mark.svg"
               alt=""
@@ -21,21 +60,42 @@ export default function LoginPage() {
           </div>
           <p className="lsub">IA + Minería · Plataforma de Acreditación</p>
           <div className="ltab">
-            <button id="tab-login" className="on" onClick={() => {}}>
+            <button
+              id="tab-login"
+              className={tab === "login" ? "on" : ""}
+              onClick={() => {
+                setTab("login");
+                setErr("");
+              }}
+            >
               Ingresar
             </button>
-            <button id="tab-register" onClick={() => {}}>
+            <button
+              id="tab-register"
+              className={tab === "register" ? "on" : ""}
+              onClick={() => {
+                setTab("register");
+                setErr("");
+              }}
+            >
               Registrar empresa
             </button>
           </div>
+
           {/* LOGIN FORM */}
-          <div id="lform-login" className="lform active">
+          <form
+            id="lform-login"
+            className={`lform ${tab === "login" ? "active" : ""}`}
+            onSubmit={handleLogin}
+          >
             <input
               id="l-email"
               className="linput"
               type="email"
               placeholder="Correo electrónico"
               autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
             <input
               id="l-pass"
@@ -43,58 +103,76 @@ export default function LoginPage() {
               type="password"
               placeholder="Contraseña"
               autoComplete="current-password"
-              onKeyDown={() => {}}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleLogin();
+              }}
             />
-            <button className="lbtn" onClick={() => {}} id="l-btn">
+            <button className="lbtn" type="submit" id="l-btn">
               Ingresar a la plataforma →
             </button>
-            <p className="lerr" id="l-err">
-              Error al ingresar: Firebase: The supplied auth credential is
-              incorrect, malformed or has expired. (auth/invalid-credential).
-            </p>
+            {err && (
+              <p className="lerr" id="l-err">
+                {err}
+              </p>
+            )}
             <div className="ldemo">
-              <p>¿Quieres probar la plataforma? Solicita tu acceso demo.</p>
+              <p>¿Quieres probar la plataforma? Ingresa directamente con tu correo o solicita acceso demo.</p>
             </div>
-          </div>
+          </form>
+
           {/* REGISTER FORM */}
-          <div id="lform-register" className="lform">
+          <form
+            id="lform-register"
+            className={`lform ${tab === "register" ? "active" : ""}`}
+            onSubmit={handleRegister}
+          >
             <input
               id="r-empresa"
               className="linput"
               type="text"
               placeholder="Nombre de la empresa"
+              value={empresa}
+              onChange={(e) => setEmpresa(e.target.value)}
             />
             <input
               id="r-rut"
               className="linput"
               type="text"
               placeholder="RUT empresa (ej: 76.543.210-9)"
+              value={rut}
+              onChange={(e) => setRut(e.target.value)}
             />
             <input
               id="r-email"
               className="linput"
               type="email"
               placeholder="Correo de contacto"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
             <input
               id="r-pass"
               className="linput"
               type="password"
               placeholder="Contraseña (mínimo 6 caracteres)"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleRegister();
+              }}
             />
-            <input
-              id="r-pass2"
-              className="linput"
-              type="password"
-              placeholder="Confirmar contraseña"
-              onKeyDown={() => {}}
-            />
-            <button className="lbtn" onClick={() => {}} id="r-btn">
+            <button className="lbtn" type="submit" id="r-btn">
               Crear cuenta y comenzar →
             </button>
-            <p className="lerr" id="r-err" />
-          </div>
-          <span className="lback" onClick={() => {}}>
+          </form>
+
+          <span
+            className="lback"
+            onClick={() => router.push("/")}
+            style={{ cursor: "pointer" }}
+          >
             ← Volver al inicio
           </span>
         </div>
@@ -102,3 +180,4 @@ export default function LoginPage() {
     </>
   );
 }
+

@@ -74,7 +74,8 @@ export default function RequisitosPage() {
     <td style="font-size:.78rem;color:var(--gris)">—</td>
     <td style="font-size:.82rem;font-weight:600;color:var(--azul)">897</td>
     <td><span class="act-ico" title="Ver" onclick="toast('Ver requisito REQ-003')">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
-  </tr><tr>
+  </tr></tbody>
+  <tbody id="req-extra" style="display:none"><tr>
     <td>
       <div style="display:flex;align-items:center;gap:10px">
         <div style="width:32px;height:32px;border-radius:8px;background:#EEF2FF;display:grid;place-items:center;font-size:.9rem;flex-shrink:0">📋</div>
@@ -155,8 +156,15 @@ export default function RequisitosPage() {
     <td style="font-size:.82rem;font-weight:600;color:var(--azul)">8</td>
     <td><span class="act-ico" title="Ver" onclick="toast('Ver requisito REQ-008')">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
   </tr></tbody>
-    </table>
-    <div class="tfoot"><span>Mostrando 1 a 8 de 8 requisitos</span><span style="color:var(--azul)">10 por página</span></div>
+  <tfoot>
+    <tr>
+      <td colspan="10" style="text-align:center;padding:12px;border-top:1px solid var(--linea)">
+        <button class="fold-btn" onclick="toggleFold('req-extra', this, '▼ Mostrar los 5 requisitos restantes...', '▲ Mostrar menos')">▼ Mostrar los 5 requisitos restantes...</button>
+      </td>
+    </tr>
+  </tfoot>
+  </table>
+  <div class="tfoot"><span>Mostrando 1 a 8 de 8 requisitos</span><span style="color:var(--azul)">8 requisitos totales</span></div>
   </div>` }} />
   );
 }

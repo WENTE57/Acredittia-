@@ -24,7 +24,7 @@ export default function LandingVideoSeq() {
             } as any
           }
         >
-          <source src="crealo_ahora.mp4" type="video/mp4" />
+          <source src="/crealo_ahora.mp4" type="video/mp4" />
         </video>
       </section>
     </>

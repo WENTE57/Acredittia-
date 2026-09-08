@@ -21,7 +21,7 @@ export default function LandingCTA() {
         <button
           data-i18n="ctaf.cta"
           className="btn-cta-white"
-          onClick={() => {}}
+          onClick={() => router.push("/login")}
         >
           Solicitar acceso a ACREDIT
           <span style={{ color: "#1D4ED8" } as any}>TIA</span> →

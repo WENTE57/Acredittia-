@@ -16,7 +16,7 @@ export default function LandingHero() {
             style={
               {
                 backgroundImage:
-                  'url("foto1.jpeg"),linear-gradient(135deg,#0F172A,#1E3A8A)',
+                  'url("/foto1.jpeg"),linear-gradient(135deg,#0F172A,#1E3A8A)',
               } as any
             }
           />
@@ -408,7 +408,7 @@ export default function LandingHero() {
               <option value="Otro">Otro</option>
             </select>
           </div>
-          <button className="hs-btn" data-i18n="hero.btn" onClick={() => {}}>
+          <button className="hs-btn" data-i18n="hero.btn" onClick={() => router.push("/login")}>
             Empezar →
           </button>
         </div>

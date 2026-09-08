@@ -161,7 +161,7 @@ export default function LandingAgentePanel() {
             <button
               data-i18n="awp.cta"
               className="btn-hero-main"
-              onClick={() => {}}
+              onClick={() => router.push("/login")}
             >
               Empezar gratis →
             </button>

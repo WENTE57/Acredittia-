@@ -28,8 +28,15 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from .config import settings
 
+# Normalización del dialecto para SQLAlchemy 2.0 + psycopg 3
+_db_url = str(settings.database_url)
+if _db_url.startswith("postgres://"):
+    _db_url = _db_url.replace("postgres://", "postgresql+psycopg://", 1)
+elif _db_url.startswith("postgresql://") and "+psycopg" not in _db_url:
+    _db_url = _db_url.replace("postgresql://", "postgresql+psycopg://", 1)
+
 engine = create_engine(
-    settings.database_url,
+    _db_url,
     pool_pre_ping=True,
     future=True,
     connect_args={"application_name": "acredittia-api"},
@@ -37,28 +44,18 @@ engine = create_engine(
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 
 # Scripts del modelo de datos en orden y versión de esquema que representan.
-SCHEMA_SCRIPTS = ["01_esquema.sql", "02_indices.sql", "03_triggers.sql",
-                  "04_rls.sql", "06_migracion_v11.sql"]
+SCHEMA_SCRIPTS = [
+    "01_esquema.sql",
+    "02_indices.sql",
+    "03_triggers.sql",
+    "04_rls.sql",
+    "06_migracion_v11.sql",
+]
 SCHEMA_VERSION = 6
 MIGRATION_LOCK_ID = 918273        # clave del pg_advisory_lock de migración
 
 
 # ---------------------------------------------------------------- contexto
-#
-# El ContextVar guarda un contenedor MUTABLE y `set_ctx()` modifica sus campos
-# en vez de reasignar la variable. La distinción no es estilística: FastAPI
-# ejecuta las dependencias síncronas y el endpoint síncrono en hilos distintos
-# del threadpool de anyio, y cada uno recibe una **copia** del contexto del
-# request (`contextvars.copy_context()`). Con un valor inmutable, el
-# `ContextVar.set()` que hace la dependencia de autenticación se aplica sobre su
-# propia copia y el endpoint no lo ve: las políticas de RLS encuentran
-# `app.company_id` vacío y toda consulta de negocio devuelve cero filas (o
-# rechaza el INSERT). Copiar el contexto copia la *referencia* al contenedor, así
-# que mutarlo sí es visible desde cualquier hilo del mismo request.
-#
-# La separación entre requests la garantiza `reset_ctx()`, que instala un
-# contenedor nuevo y lo llama el middleware de `main.py` al entrar en cada
-# request, antes de que se cree la tarea que ejecuta el endpoint.
 @dataclass
 class TenantCtx:
     company_id: str | None = None
@@ -132,16 +129,7 @@ def get_db():
 
 @contextlib.contextmanager
 def auth_session():
-    """Sesión para consultas de autenticación (login, refresh, reset de clave).
-
-    En esas rutas todavía no hay tenant: hay que poder leer `users` por email
-    sin saber a qué empresa pertenece. Se abre con `is_admin=true` y se usa
-    EXCLUSIVAMENTE para resolver credenciales, nunca para datos de negocio.
-
-    Al salir se restauran los CAMPOS del contenedor en vez de reasignar el
-    ContextVar: el contenedor es compartido con el resto del request y
-    reemplazarlo dejaría al endpoint sin contexto (ver la nota de `set_ctx`).
-    """
+    """Sesión para consultas de autenticación (login, refresh, reset de clave)."""
     ctx = _contenedor()
     previo = ctx.instantanea()
     set_ctx(is_admin=True)
@@ -208,27 +196,13 @@ def assert_schema_version(esperada: int = SCHEMA_VERSION) -> None:
         )
 
 
-_ADD_VALUE = re.compile(r"^\s*ALTER\s+TYPE\s+\w+\s+ADD\s+VALUE\b.*;\s*$",
-                        re.IGNORECASE)
+_ADD_VALUE = re.compile(
+    r"^\s*ALTER\s+TYPE\s+\w+\s+ADD\s+VALUE\b.*;\s*$",
+    re.IGNORECASE,
+)
 
 
 def _preparar_script(sql: str) -> tuple[list[str], str]:
-    """Separa las extensiones de ENUM del resto del script.
-
-    `ALTER TYPE ... ADD VALUE` se puede ejecutar dentro de una transacción desde
-    PG12, pero el valor nuevo **no se puede usar** en esa misma transacción. El
-    bloque 7 de `06_migracion_v11.sql` crea un CHECK que referencia
-    'contract_admin', así que si el archivo entero va en una sola transacción
-    PostgreSQL responde `UnsafeNewEnumValueUsage`. Por eso el encabezado del
-    script pide autocommit: psql cumple porque cada sentencia es su propia
-    transacción, y aquí se reproduce ejecutando primero cada ADD VALUE por
-    separado y confirmándolo antes del resto.
-
-    No se intenta partir el archivo completo en sentencias: los bloques `DO $$`
-    y las funciones con cuerpo entre `$$` harían fallar cualquier división por
-    punto y coma. Las líneas ADD VALUE, en cambio, son de una sola línea y
-    triviales de identificar.
-    """
     add_values: list[str] = []
     resto: list[str] = []
     for linea in sql.splitlines():
@@ -242,16 +216,7 @@ def _preparar_script(sql: str) -> tuple[list[str], str]:
 
 
 def apply_schema(schema_dir: str | None = None) -> int:
-    """Aplica los scripts pendientes bajo pg_advisory_lock.
-
-    El cerrojo es de PostgreSQL, así que sirve igual si lo invoca el job de
-    migración o varias réplicas arrancando a la vez: la primera aplica y las
-    demás esperan y encuentran el esquema ya listo.
-
-    Se ejecuta en autocommit para respetar el requisito de los ADD VALUE de
-    ENUM (ver `_preparar_script`). El cerrojo es de sesión, así que sobrevive
-    igual sin transacción envolvente.
-    """
+    """Aplica los scripts pendientes bajo pg_advisory_lock."""
     sdir = schema_dir or settings.schema_dir
     if not os.path.isdir(sdir):
         raise RuntimeError(f"No existe el directorio de esquema {sdir}")

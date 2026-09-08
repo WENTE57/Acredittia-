@@ -38,25 +38,37 @@ export default function LandingFooter() {
             </div>
             <div className="f2-col">
               <h4 data-i18n="foot.col1.h">Plataforma</h4>
-              <a data-i18n="foot.col1.l1" onClick={() => {}}>
+              <a
+                data-i18n="foot.col1.l1"
+                onClick={() => document.getElementById("sectores")?.scrollIntoView({ behavior: "smooth" })}
+                style={{ cursor: "pointer" }}
+              >
                 Industrias
               </a>
-              <a data-i18n="foot.col1.l2" onClick={() => {}}>
+              <a
+                data-i18n="foot.col1.l2"
+                onClick={() => router.push("/login")}
+                style={{ cursor: "pointer" }}
+              >
                 Iniciar sesión
               </a>
-              <a data-i18n="foot.col1.l3" onClick={() => {}}>
+              <a
+                data-i18n="foot.col1.l3"
+                onClick={() => router.push("/login")}
+                style={{ cursor: "pointer" }}
+              >
                 Registrar empresa
               </a>
             </div>
             <div className="f2-col">
               <h4 data-i18n="foot.col2.h">Sectores</h4>
-              <a data-i18n="foot.col2.l1">Gran Minería</a>
-              <a data-i18n="foot.col2.l7">Salmonicultura</a>
-              <a data-i18n="foot.col2.l4">Agropecuario</a>
-              <a data-i18n="foot.col2.l2">Energía Solar</a>
-              <a data-i18n="foot.col2.l3">Energía Eólica</a>
-              <a data-i18n="foot.col2.l5">Construcción</a>
-              <a data-i18n="foot.col2.l6">Otras industrias</a>
+              <a data-i18n="foot.col2.l1" onClick={() => document.getElementById("sectores")?.scrollIntoView({ behavior: "smooth" })} style={{ cursor: "pointer" }}>Gran Minería</a>
+              <a data-i18n="foot.col2.l7" onClick={() => document.getElementById("sectores")?.scrollIntoView({ behavior: "smooth" })} style={{ cursor: "pointer" }}>Salmonicultura</a>
+              <a data-i18n="foot.col2.l4" onClick={() => document.getElementById("sectores")?.scrollIntoView({ behavior: "smooth" })} style={{ cursor: "pointer" }}>Agropecuario</a>
+              <a data-i18n="foot.col2.l2" onClick={() => document.getElementById("sectores")?.scrollIntoView({ behavior: "smooth" })} style={{ cursor: "pointer" }}>Energía Solar</a>
+              <a data-i18n="foot.col2.l3" onClick={() => document.getElementById("sectores")?.scrollIntoView({ behavior: "smooth" })} style={{ cursor: "pointer" }}>Energía Eólica</a>
+              <a data-i18n="foot.col2.l5" onClick={() => document.getElementById("sectores")?.scrollIntoView({ behavior: "smooth" })} style={{ cursor: "pointer" }}>Construcción</a>
+              <a data-i18n="foot.col2.l6" onClick={() => document.getElementById("sectores")?.scrollIntoView({ behavior: "smooth" })} style={{ cursor: "pointer" }}>Otras industrias</a>
             </div>
             <div className="f2-col">
               <h4 data-i18n="foot.col3.h">Empresa</h4>

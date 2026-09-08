@@ -339,9 +339,11 @@
   /* help button in header */
   .hico-btn{width:36px;height:36px;border-radius:10px;background:var(--dpanel);border:1px solid var(--dline);color:var(--dmut);font-weight:700;font-size:.95rem;cursor:pointer}
   .hico-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+  .ct-link:active, .btn-primary:active, .btn-outline:active, .linkbtn:active, .act-ico:active, .hico-btn:active, .orgsw:active {transform:scale(0.96);opacity:.85;transition:transform 0.04s ease}
   .snavi{display:flex;align-items:center;justify-content:center;width:48px;height:44px;padding:0;border-radius:10px;color:rgba(255,255,255,.55);font-weight:500;font-size:0;cursor:pointer;transition:.15s;position:relative}
   .snavi .ico{font-size:1.2rem;width:20px;text-align:center;filter:none}
   .snavi:hover{background:rgba(255,255,255,.08);color:#fff}
+  .snavi:active{transform:scale(0.92);opacity:.85;transition:transform .05s ease}
   .snavi.active{background:var(--cyan);color:#fff;font-weight:700}
   .snavi.active::before{content:none}
   .nbadge{position:absolute;top:3px;right:3px;margin-left:0;background:#F59E0B;color:#fff;font-size:.6rem;font-weight:700;min-width:16px;height:16px;border-radius:9px;display:grid;place-items:center;padding:0 4px}
@@ -1521,4 +1523,31 @@
 
 
     @media(max-width:640px){ .map-label{display:none} }
+
+details.fold-wrap {
+  margin-top: 10px;
+  background: #F8FAFC;
+  border: 1px dashed #CBD5E1;
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+details.fold-wrap summary.fold-btn {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--cyan-d);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+details.fold-wrap summary.fold-btn::-webkit-details-marker {
+  display: none;
+}
+details.fold-wrap[open] summary.fold-btn {
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--linea);
+  padding-bottom: 8px;
+}
   

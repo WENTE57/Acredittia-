@@ -72,7 +72,8 @@ export default function AlertasPage() {
     <td style="font-size:.78rem;color:var(--gris)">Hace 14 días</td>
     <td><span class="chip vencido" style="font-size:.65rem">No leída</span></td>
     <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
-  </tr><tr>
+  </tr></tbody>
+  <tbody id="al-extra" style="display:none"><tr>
     <td><span class="chip critica" style="font-size:.65rem;display:inline-flex;align-items:center;gap:4px">⊗ Crítica</span></td>
     <td><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Vencimiento: Anexo Contrato</div><div class="sub">Donoso Araya Francisca — RUT 13.987.777-6</div></td>
     <td><span class="chip critica" style="font-size:.65rem">Crítica</span></td>
@@ -303,8 +304,15 @@ export default function AlertasPage() {
     <td><span class="chip activo" style="font-size:.65rem">Leída</span></td>
     <td><span class="act-ico" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
   </tr></tbody>
-    </table>
-    <div class="tfoot"><span>Mostrando 1 a 27 de 27 alertas</span></div>
+  <tfoot>
+    <tr>
+      <td colspan="10" style="text-align:center;padding:12px;border-top:1px solid var(--linea)">
+        <button class="fold-btn" onclick="toggleFold('al-extra', this, '▼ Mostrar las 23 alertas restantes...', '▲ Mostrar menos')">▼ Mostrar las 23 alertas restantes...</button>
+      </td>
+    </tr>
+  </tfoot>
+  </table>
+  <div class="tfoot"><span>Mostrando 1 a 27 de 27 alertas</span></div>
   </div>` }} />
   );
 }

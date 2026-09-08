@@ -28,6 +28,7 @@ export default function Sidebar({
 }) {
   const path = usePathname();
   const router = useRouter();
+  const [currentRoute, setCurrentRoute] = useState(path || "/dashboard");
   const [noLeidas, setNoLeidas] = useState(0);
   const user = typeof window !== "undefined" ? Api.currentUser() : null;
   const esAdmin = user?.role === "admin";
@@ -37,12 +38,36 @@ export default function Sidebar({
       : null;
 
   useEffect(() => {
+    if (path) setCurrentRoute(path);
+  }, [path]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (typeof window !== "undefined") {
+        setCurrentRoute(window.location.pathname);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
     if (esAdmin && !impersonando) return;
     Api.alertas
       .resumen()
-      .then((r) => setNoLeidas(r.no_leidas))
+      .then((r) => setNoLeidas(r?.no_leidas ?? 0))
       .catch(() => {});
-  }, [path, esAdmin, impersonando]);
+  }, [esAdmin, impersonando]);
+
+  const handleNav = (e: React.MouseEvent, href: string) => {
+    e.preventDefault();
+    setCurrentRoute(href);
+    if (typeof (window as any).setAppRoute === "function") {
+      (window as any).setAppRoute(href);
+    } else {
+      router.push(href);
+    }
+  };
 
   const salir = async () => {
     const refresh = Api.refreshToken();
@@ -58,11 +83,16 @@ export default function Sidebar({
   const name = user?.nombre ?? "Usuario";
   const initial = name.charAt(0).toUpperCase();
 
+  const isItemActive = (href: string) => {
+    if (href === "/dashboard") return currentRoute === "/dashboard" || currentRoute === "/";
+    return currentRoute.startsWith(href);
+  };
+
   return (
     <>
       <aside className={`side ${isOpen ? "mob-open" : ""}`}>
         {/* Logo */}
-        <div className="slogo">
+        <div className="slogo" onClick={(e) => handleNav(e, "/dashboard")} style={{ cursor: "pointer" }}>
           <svg
             className="mark"
             viewBox="0 0 100 92"
@@ -126,9 +156,9 @@ export default function Sidebar({
             Viendo como {impersonando}
             <button
               className="ml-2 underline"
-              onClick={() => {
+              onClick={(e) => {
                 sessionStorage.clear();
-                router.push("/admin");
+                handleNav(e, "/admin");
               }}
             >
               salir
@@ -141,7 +171,8 @@ export default function Sidebar({
           {esAdmin && (
             <Link
               href="/admin"
-              className={`snavi ${path === "/admin" ? "active" : ""}`}
+              onClick={(e) => handleNav(e, "/admin")}
+              className={`snavi ${isItemActive("/admin") ? "active" : ""}`}
             >
               <span className="ico">🛡️</span>Panel admin
             </Link>
@@ -151,7 +182,8 @@ export default function Sidebar({
               <Link
                 key={i.href}
                 href={i.href}
-                className={`snavi ${path.startsWith(i.href) ? "active" : ""}`}
+                onClick={(e) => handleNav(e, i.href)}
+                className={`snavi ${isItemActive(i.href) ? "active" : ""}`}
               >
                 <span className="ico">{i.icono}</span>
                 {i.nombre}
@@ -166,7 +198,8 @@ export default function Sidebar({
         <div className="sbottom">
           <Link
             href="/config"
-            className={`snavi ${path.startsWith("/config") ? "active" : ""}`}
+            onClick={(e) => handleNav(e, "/config")}
+            className={`snavi ${isItemActive("/config") ? "active" : ""}`}
           >
             <span className="ico">⚙️</span>Configuración
           </Link>

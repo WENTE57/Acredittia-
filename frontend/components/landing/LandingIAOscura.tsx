@@ -174,7 +174,7 @@ export default function LandingIAOscura() {
             <button
               data-i18n="iad.cta"
               className="btn-hero-main"
-              onClick={() => {}}
+              onClick={() => router.push("/login")}
               style={{ marginTop: 8 } as any}
             >
               Empezar gratis →

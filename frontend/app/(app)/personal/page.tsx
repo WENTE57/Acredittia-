@@ -74,10 +74,11 @@ export default function PersonasPage() {
       <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">17 dic 2026</div><div class="sub">199 días</div></td>
       <td><span class="cert-tag">Cédula de Iden</span></td>
       <td><span class="act-ico" onclick="openSubject('lp1','personal','dp3')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
-    </tr><tr>
-      <td><div style="display:flex;align-items:center;gap:10px">
-        <div class="p-row-av" style="background:#1E3A8A">PL</div>
-        <div><div class="ct-link" onclick="openSubject('lp1','personal','dp4')">Pinto Leiva Mauricio</div><div class="sub">16.450.789-2</div></div>
+    </tr></tbody>
+    <tbody id="pers-extra" style="display:none"><tr>
+        <td><div style="display:flex;align-items:center;gap:10px">
+          <div class="p-row-av" style="background:#1E3A8A">PL</div>
+          <div><div class="ct-link" onclick="openSubject('lp1','personal','dp4')">Pinto Leiva Mauricio</div><div class="sub">16.450.789-2</div></div>
       </div></td>
       <td style="font-size:.8rem;color:var(--gris)">16.450.789-2</td>
       <td style="font-size:.8rem">Conductor Pesado</td>
@@ -721,10 +722,16 @@ export default function PersonasPage() {
       <td><span class="chip activo">Acreditado</span></td>
       <td><div style="font-size:.75rem;font-weight:600;color:var(--txt)">28 oct 2026</div><div class="sub">149 días</div></td>
       <td><span class="cert-tag">Certificado de</span><span class="cert-tag">Contrato Indiv</span></td>
-      <td><span class="act-ico" onclick="openSubject('eol1','personal','dp57')" title="Ver">👁</span>&nbsp;<span class="act-ico" title="Opciones">⋮</span></td>
     </tr></tbody>
+    <tfoot>
+      <tr>
+        <td colspan="10" style="text-align:center;padding:12px;border-top:1px solid var(--linea)">
+          <button class="fold-btn" onclick="toggleFold('pers-extra', this, '▼ Mostrar los 54 trabajadores restantes...', '▲ Mostrar menos')">▼ Mostrar los 54 trabajadores restantes...</button>
+        </td>
+      </tr>
+    </tfoot>
     </table>
-    <div class="tfoot"><span>Mostrando 1 a 58 de 58 trabajadores</span><span style="color:var(--azul)">10 por página</span></div>
-  </div>` }} />
+    <div class="tfoot"><span>Mostrando 1 a 58 de 58 trabajadores</span><span style="color:var(--azul)">58 registros totales</span></div>
+    </div>` }} />
   );
 }

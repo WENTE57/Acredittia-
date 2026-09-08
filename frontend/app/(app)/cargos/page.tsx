@@ -47,8 +47,9 @@ export default function CargosPage() {
       <td><div style="display:flex;align-items:center;gap:6px"><div class="tbar"><i style="width:100%;background:#10B981"></i></div><span style="font-size:.78rem;font-weight:600;color:#10B981">100%</span></div></td>
       <td><span class="chip activo">Al día</span></td>
       <td><span class="act-ico" title="Ver personal" onclick="navTo('personas')">👁</span>&nbsp;<span class="act-ico" title="Opciones" onclick="toast('Editar plantilla de cargo — próximamente')">⋮</span></td>
-    </tr><tr>
-      <td><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:8px;background:#dcfce7;display:grid;place-items:center;font-size:.9rem;flex-shrink:0">🪪</div><div><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Mecánico Industrial</div></div></div></td>
+    </tr></tbody>
+    <tbody id="cargo-extra" style="display:none"><tr>
+        <td><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:8px;background:#dcfce7;display:grid;place-items:center;font-size:.9rem;flex-shrink:0">🪪</div><div><div style="font-size:.85rem;font-weight:600;color:var(--txt)">Mecánico Industrial</div></div></div></td>
       <td><span class="chip" style="background:#dcfce7;color:#166534;font-size:.68rem">Operación</span></td>
       <td style="font-size:.85rem;font-weight:600">3</td>
       <td style="font-size:.8rem;color:var(--gris)">13 documentos</td>
@@ -320,8 +321,15 @@ export default function CargosPage() {
       <td><span class="chip activo">Al día</span></td>
       <td><span class="act-ico" title="Ver personal" onclick="navTo('personas')">👁</span>&nbsp;<span class="act-ico" title="Opciones" onclick="toast('Editar plantilla de cargo — próximamente')">⋮</span></td>
     </tr></tbody>
+    <tfoot>
+      <tr>
+        <td colspan="10" style="text-align:center;padding:12px;border-top:1px solid var(--linea)">
+          <button class="fold-btn" onclick="toggleFold('cargo-extra', this, '▼ Mostrar los 34 cargos restantes...', '▲ Mostrar menos')">▼ Mostrar los 34 cargos restantes...</button>
+        </td>
+      </tr>
+    </tfoot>
     </table>
-    <div class="tfoot"><span>Mostrando 1 a 37 de 37 cargos</span><span style="color:var(--azul)">10 por página</span></div>
-  </div>` }} />
+    <div class="tfoot"><span>Mostrando 1 a 37 de 37 cargos</span><span style="color:var(--azul)">37 cargos totales</span></div>
+    </div>` }} />
   );
 }

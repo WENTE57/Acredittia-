@@ -316,7 +316,7 @@ export default function LandingEquipos() {
             data-i18n="tip.cta"
             className="btn btn-primary"
             style={{ padding: "14px 32px", fontSize: "1rem" } as any}
-            onClick={() => {}}
+            onClick={() => router.push("/login")}
           >
             Ver todos los tipos de equipos →
           </button>

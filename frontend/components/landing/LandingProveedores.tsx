@@ -551,7 +551,7 @@ export default function LandingProveedores() {
               poster=""
             >
               <source
-                src="haz_un_video_como_este_estilo.mp4"
+                src="/haz_un_video_como_este_estilo.mp4"
                 type="video/mp4"
               />
             </video>
@@ -565,7 +565,7 @@ export default function LandingProveedores() {
               ¿Listo para integrar tu primera faena?
             </span>
             <button
-              onClick={() => {}}
+              onClick={() => router.push("/login")}
               style={
                 {
                   background: "none",

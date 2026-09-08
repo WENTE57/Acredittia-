@@ -89,7 +89,11 @@ export default function PlantillasPage() {
           <span class="chip inactivo" style="font-size:.65rem">Opcional</span>
         </div>
       </div></div>
-    </div><div class="wcard" style="margin-bottom:16px">
+    </div>
+    <details class="fold-wrap">
+      <summary class="fold-btn">▼ Ver las 3 plantillas adicionales (Personal, Equipos, EMSIPOR)...</summary>
+      <div style="margin-top:12px">
+      <div class="wcard" style="margin-bottom:16px">
       <div class="ph" style="align-items:center">
         <div style="display:flex;align-items:center;gap:10px">
           <span style="background:#dcfce7;color:#166534;font-size:.78rem;font-weight:700;padding:6px 14px;border-radius:8px">👤 Personal</span>
@@ -253,7 +257,12 @@ export default function PlantillasPage() {
           <span class="chip inactivo" style="font-size:.65rem">Opcional</span>
         </div>
       </div></div>
-    </div><div class="wcard" style="margin-bottom:16px">
+    </div>
+    <div style="text-align:center;margin:16px 0">
+      <button class="fold-btn" onclick="toggleFold('plan-extra', this, '▼ Mostrar plantilla adicional (EMSIPOR Conductores)...', '▲ Mostrar menos')">▼ Mostrar plantilla adicional (EMSIPOR Conductores)...</button>
+    </div>
+    <div id="plan-extra" style="display:none">
+    <div class="wcard" style="margin-bottom:16px">
       <div class="ph" style="align-items:center">
         <div style="display:flex;align-items:center;gap:10px">
           <span style="background:#ede9fe;color:#5b21b6;font-size:.78rem;font-weight:700;padding:6px 14px;border-radius:8px">🪪 EMSIPOR conductores</span>
@@ -320,6 +329,7 @@ export default function PlantillasPage() {
           <span class="chip vencido" style="font-size:.65rem">Obligatorio</span>
         </div>
       </div></div>
+    </div>
     </div>` }} />
   );
 }

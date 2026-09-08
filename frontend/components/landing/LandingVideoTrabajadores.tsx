@@ -24,7 +24,7 @@ export default function LandingVideoTrabajadores() {
             } as any
           }
         >
-          <source src="trabajadores2.mp4" type="video/mp4" />
+          <source src="/trabajadores2.mp4" type="video/mp4" />
         </video>
       </section>
     </>

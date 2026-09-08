@@ -103,7 +103,7 @@ services:
 
   beat:
     build: ./backend
-    command: celery -A worker.celery_app beat --loglevel=info
+    command: celery -A worker.celery_app beat --loglevel=info -s /tmp/celerybeat-schedule
     depends_on:
       redis:
         condition: service_healthy

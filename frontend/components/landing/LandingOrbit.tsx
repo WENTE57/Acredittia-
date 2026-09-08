@@ -45,7 +45,7 @@ export default function LandingOrbit() {
                   <div
                     className="orbit-bubble-inner"
                     style={
-                      { backgroundImage: 'url("los_pelambres.jpeg")' } as any
+                      { backgroundImage: 'url("/los_pelambres.jpeg")' } as any
                     }
                     title="Los Pelambres"
                   />
@@ -56,7 +56,7 @@ export default function LandingOrbit() {
                 <div className="orbit-bubble-counter">
                   <div
                     className="orbit-bubble-inner"
-                    style={{ backgroundImage: 'url("centinela.jpg")' } as any}
+                    style={{ backgroundImage: 'url("/centinela.jpg")' } as any}
                     title="Centinela"
                   />
                   <span className="orbit-bubble-label">Centinela</span>
@@ -66,7 +66,7 @@ export default function LandingOrbit() {
                 <div className="orbit-bubble-counter">
                   <div
                     className="orbit-bubble-inner"
-                    style={{ backgroundImage: 'url("antucoya.jpg")' } as any}
+                    style={{ backgroundImage: 'url("/antucoya.jpg")' } as any}
                     title="Antucoya"
                   />
                   <span className="orbit-bubble-label">Antucoya</span>
@@ -79,7 +79,7 @@ export default function LandingOrbit() {
                 <div className="orbit-bubble-counter">
                   <div
                     className="orbit-bubble-inner"
-                    style={{ backgroundImage: 'url("zaldivar.png")' } as any}
+                    style={{ backgroundImage: 'url("/zaldivar.png")' } as any}
                     title="Zaldívar"
                   />
                   <span className="orbit-bubble-label">Zaldívar</span>
@@ -92,7 +92,7 @@ export default function LandingOrbit() {
                 <div className="orbit-bubble-counter">
                   <div
                     className="orbit-bubble-inner"
-                    style={{ backgroundImage: 'url("candelaria.jpg")' } as any}
+                    style={{ backgroundImage: 'url("/candelaria.jpg")' } as any}
                     title="Candelaria"
                   />
                   <span className="orbit-bubble-label">Candelaria</span>
@@ -105,7 +105,7 @@ export default function LandingOrbit() {
                 <div className="orbit-bubble-counter">
                   <div
                     className="orbit-bubble-inner"
-                    style={{ backgroundImage: 'url("caserones.jpeg")' } as any}
+                    style={{ backgroundImage: 'url("/caserones.jpeg")' } as any}
                     title="Caserones"
                   />
                   <span className="orbit-bubble-label">Caserones</span>
@@ -118,7 +118,7 @@ export default function LandingOrbit() {
                 <div className="orbit-bubble-counter">
                   <div
                     className="orbit-bubble-inner"
-                    style={{ backgroundImage: 'url("el_teniente.jpg")' } as any}
+                    style={{ backgroundImage: 'url("/el_teniente.jpg")' } as any}
                     title="El Teniente"
                   />
                   <span className="orbit-bubble-label">El Teniente</span>
@@ -131,7 +131,7 @@ export default function LandingOrbit() {
                 <div className="orbit-bubble-counter">
                   <div
                     className="orbit-bubble-inner"
-                    style={{ backgroundImage: 'url("andina.jpg")' } as any}
+                    style={{ backgroundImage: 'url("/andina.jpg")' } as any}
                     title="Andina"
                   />
                   <span className="orbit-bubble-label">Andina</span>
@@ -145,7 +145,7 @@ export default function LandingOrbit() {
                   <div
                     className="orbit-bubble-inner"
                     style={
-                      { backgroundImage: 'url("antofagastaI.jpg")' } as any
+                      { backgroundImage: 'url("/antofagastaI.jpg")' } as any
                     }
                     title="Parque Eólico Antofagasta I"
                   />

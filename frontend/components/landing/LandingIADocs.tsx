@@ -1,9 +1,10 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function LandingIADocs() {
   const router = useRouter();
+  const [activeDoc, setActiveDoc] = useState<number>(0);
   return (
     <>
       {/* IA QUE LEE DOCUMENTOS (interactivo estilo CarSignal) */}
@@ -37,37 +38,13 @@ export default function LandingIADocs() {
           <span data-i18n="doc.label" className="sec-label">
             DETECCIÓN CON IA
           </span>
-          <h2
-            data-i18n="doc.h2"
-            style={
-              {
-                fontSize: "2.3rem",
-                fontWeight: 900,
-                color: "var(--azul)",
-                margin: "14px 0 16px",
-                lineHeight: "1.2",
-              } as any
-            }
-          >
-            Sube el documento. La IA hace el resto.
+          <h2 data-i18n="doc.h2" className="sec-title" style={{ marginTop: 10 } as any}>
+            Sube cualquier documento.
+            <br />
+            La IA extrae los datos y valida las reglas.
           </h2>
-          <p
-            data-i18n="doc.p"
-            style={
-              {
-                color: "var(--gris)",
-                fontSize: "1.02rem",
-                lineHeight: "1.7",
-                maxWidth: 660,
-                margin: "0 auto",
-              } as any
-            }
-          >
-            Carnet, examen ocupacional, licencia, póliza — la IA lee el
-            documento, extrae los datos, fija el vencimiento y detecta si algo
-            no calza: un RUT ilegible, una fecha mal escrita o un escaneo de
-            mala calidad. Si algo vence, avisa por correo al encargado del
-            contrato. Sin que nadie tenga que revisarlo a mano.
+          <p data-i18n="doc.lead" className="sec-lead">
+            Haz clic en los ejemplos para ver cómo la IA lee distintos tipos de archivos en tiempo real.
           </p>
         </div>
         <div
@@ -75,34 +52,36 @@ export default function LandingIADocs() {
             {
               display: "flex",
               justifyContent: "center",
-              gap: 10,
-              margin: "36px auto 0",
+              gap: 8,
+              marginTop: 32,
+              marginBottom: 40,
               flexWrap: "wrap",
               maxWidth: 700,
+              marginInline: "auto",
             } as any
           }
         >
           <button
             data-i18n="doc.tab0"
-            className="doc-tab is-active"
+            className={`doc-tab ${activeDoc === 0 ? "is-active" : ""}`}
             data-doc={0}
-            onClick={() => {}}
+            onClick={() => setActiveDoc(0)}
           >
             🪪 Cédula de Identidad
           </button>
           <button
             data-i18n="doc.tab1"
-            className="doc-tab"
+            className={`doc-tab ${activeDoc === 1 ? "is-active" : ""}`}
             data-doc={1}
-            onClick={() => {}}
+            onClick={() => setActiveDoc(1)}
           >
             🩺 Examen de Salud
           </button>
           <button
             data-i18n="doc.tab2"
-            className="doc-tab"
+            className={`doc-tab ${activeDoc === 2 ? "is-active" : ""}`}
             data-doc={2}
-            onClick={() => {}}
+            onClick={() => setActiveDoc(2)}
           >
             ⚠️ Documento con error
           </button>
@@ -196,7 +175,7 @@ export default function LandingIADocs() {
                 }
               />
               {/* SIL 0: CÉDULA */}
-              <div className="doc-sil is-active" id="docSil0">
+              <div className={`doc-sil ${activeDoc === 0 ? "is-active" : ""}`} id="docSil0">
                 <div
                   style={
                     {
@@ -249,7 +228,7 @@ export default function LandingIADocs() {
                 </div>
               </div>
               {/* SIL 1: EXAMEN SALUD */}
-              <div className="doc-sil" id="docSil1">
+              <div className={`doc-sil ${activeDoc === 1 ? "is-active" : ""}`} id="docSil1">
                 <div
                   style={
                     {
@@ -304,7 +283,7 @@ export default function LandingIADocs() {
                 </div>
               </div>
               {/* SIL 2: DOCUMENTO CON ERROR */}
-              <div className="doc-sil" id="docSil2">
+              <div className={`doc-sil ${activeDoc === 2 ? "is-active" : ""}`} id="docSil2">
                 <div
                   style={
                     {

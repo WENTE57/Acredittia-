@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 
 export default function LandingVideoPitch() {
   const router = useRouter();
+  const [playing, setPlaying] = React.useState(false);
   return (
     <>
       {/* VIDEO PITCH YOUTUBE */}
@@ -66,7 +67,7 @@ export default function LandingVideoPitch() {
           </p>
           <div
             id="ytPitchWrap"
-            onClick={() => {}}
+            onClick={() => setPlaying(true)}
             style={
               {
                 position: "relative",
@@ -80,67 +81,86 @@ export default function LandingVideoPitch() {
               } as any
             }
           >
-            <img
-              src="/maxresdefault.jpg"
-              alt="ACREDITTIA — Video Pitch"
-              style={
-                {
+            {playing ? (
+              <iframe
+                src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1"
+                title="Acredittia Pitch Video"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                style={{
                   position: "absolute",
                   top: 0,
                   left: 0,
                   width: "100%",
                   height: "100%",
-                  objectFit: "cover",
-                } as any
-              }
-              onError={() => {}}
-            />
-            <div
-              style={
-                {
-                  position: "absolute",
-                  inset: 0,
-                  background: "rgba(8,14,28,.28)",
-                } as any
-              }
-            />
-            <div
-              style={
-                {
-                  position: "absolute",
-                  inset: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                } as any
-              }
-            >
-              <div
-                className="yt-play-btn"
-                style={
-                  {
-                    width: 84,
-                    height: 84,
-                    borderRadius: "50%",
-                    background: "rgba(255,255,255,.96)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    boxShadow: "0 8px 30px rgba(0,0,0,.45)",
-                    transition: "transform .2s",
-                  } as any
-                }
-              >
-                <svg
-                  width={28}
-                  height={32}
-                  viewBox="0 0 28 32"
-                  style={{ marginLeft: 4 } as any}
+                  border: "none",
+                }}
+              />
+            ) : (
+              <>
+                <img
+                  src="/maxresdefault.jpg"
+                  alt="ACREDITTIA — Video Pitch"
+                  style={
+                    {
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    } as any
+                  }
+                  onError={() => {}}
+                />
+                <div
+                  style={
+                    {
+                      position: "absolute",
+                      inset: 0,
+                      background: "rgba(8,14,28,.28)",
+                    } as any
+                  }
+                />
+                <div
+                  style={
+                    {
+                      position: "absolute",
+                      inset: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    } as any
+                  }
                 >
-                  <path d="M0 0 L28 16 L0 32 Z" fill="#3D62F5" />
-                </svg>
-              </div>
-            </div>
+                  <div
+                    className="yt-play-btn"
+                    style={
+                      {
+                        width: 84,
+                        height: 84,
+                        borderRadius: "50%",
+                        background: "rgba(255,255,255,.96)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        boxShadow: "0 8px 30px rgba(0,0,0,.45)",
+                        transition: "transform .2s",
+                      } as any
+                    }
+                  >
+                    <svg
+                      width={28}
+                      height={32}
+                      viewBox="0 0 28 32"
+                      style={{ marginLeft: 4 } as any}
+                    >
+                      <path d="M0 0 L28 16 L0 32 Z" fill="#3D62F5" />
+                    </svg>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </section>

@@ -138,7 +138,7 @@ export default function LandingFaenasScroll() {
                   style={
                     {
                       background:
-                        'linear-gradient(180deg,rgba(11,22,40,.05) 0%,rgba(11,22,40,.92) 100%),url("los_pelambres.jpeg") center/cover no-repeat',
+                        'linear-gradient(180deg,rgba(11,22,40,.05) 0%,rgba(11,22,40,.92) 100%),url("/los_pelambres.jpeg") center/cover no-repeat',
                     } as any
                   }
                 >
@@ -163,7 +163,7 @@ export default function LandingFaenasScroll() {
                   style={
                     {
                       background:
-                        'linear-gradient(180deg,rgba(11,22,40,.05) 0%,rgba(11,22,40,.92) 100%),url("centinela.jpg") center/cover no-repeat',
+                        'linear-gradient(180deg,rgba(11,22,40,.05) 0%,rgba(11,22,40,.92) 100%),url("/centinela.jpg") center/cover no-repeat',
                     } as any
                   }
                 >
@@ -188,7 +188,7 @@ export default function LandingFaenasScroll() {
                   style={
                     {
                       background:
-                        'linear-gradient(180deg,rgba(11,22,40,.05) 0%,rgba(11,22,40,.92) 100%),url("antucoya.jpg") center/cover no-repeat',
+                        'linear-gradient(180deg,rgba(11,22,40,.05) 0%,rgba(11,22,40,.92) 100%),url("/antucoya.jpg") center/cover no-repeat',
                     } as any
                   }
                 >
@@ -213,7 +213,7 @@ export default function LandingFaenasScroll() {
                   style={
                     {
                       background:
-                        'linear-gradient(180deg,rgba(11,22,40,.05) 0%,rgba(11,22,40,.92) 100%),url("zaldivar.png") center/cover no-repeat',
+                        'linear-gradient(180deg,rgba(11,22,40,.05) 0%,rgba(11,22,40,.92) 100%),url("/zaldivar.png") center/cover no-repeat',
                     } as any
                   }
                 >
@@ -238,7 +238,7 @@ export default function LandingFaenasScroll() {
                   style={
                     {
                       background:
-                        'linear-gradient(180deg,rgba(11,22,40,.05) 0%,rgba(11,22,40,.92) 100%),url("candelaria.jpg") center/cover no-repeat',
+                        'linear-gradient(180deg,rgba(11,22,40,.05) 0%,rgba(11,22,40,.92) 100%),url("/candelaria.jpg") center/cover no-repeat',
                     } as any
                   }
                 >
@@ -266,7 +266,7 @@ export default function LandingFaenasScroll() {
                   style={
                     {
                       background:
-                        'linear-gradient(180deg,rgba(11,22,40,.05) 0%,rgba(11,22,40,.92) 100%),url("caserones.jpeg") center/cover no-repeat',
+                        'linear-gradient(180deg,rgba(11,22,40,.05) 0%,rgba(11,22,40,.92) 100%),url("/caserones.jpeg") center/cover no-repeat',
                     } as any
                   }
                 >
@@ -293,7 +293,7 @@ export default function LandingFaenasScroll() {
                   style={
                     {
                       background:
-                        'linear-gradient(180deg,rgba(11,22,40,.05) 0%,rgba(11,22,40,.92) 100%),url("el_teniente.jpg") center/cover no-repeat',
+                        'linear-gradient(180deg,rgba(11,22,40,.05) 0%,rgba(11,22,40,.92) 100%),url("/el_teniente.jpg") center/cover no-repeat',
                     } as any
                   }
                 >
@@ -318,7 +318,7 @@ export default function LandingFaenasScroll() {
                   style={
                     {
                       background:
-                        'linear-gradient(180deg,rgba(11,22,40,.05) 0%,rgba(11,22,40,.92) 100%),url("andina.jpg") center/cover no-repeat',
+                        'linear-gradient(180deg,rgba(11,22,40,.05) 0%,rgba(11,22,40,.92) 100%),url("/andina.jpg") center/cover no-repeat',
                     } as any
                   }
                 >
@@ -343,7 +343,7 @@ export default function LandingFaenasScroll() {
                   style={
                     {
                       background:
-                        'linear-gradient(180deg,rgba(11,22,40,.05) 0%,rgba(11,22,40,.92) 100%),url("antofagastaI.jpg") center/cover no-repeat',
+                        'linear-gradient(180deg,rgba(11,22,40,.05) 0%,rgba(11,22,40,.92) 100%),url("/antofagastaI.jpg") center/cover no-repeat',
                     } as any
                   }
                 >

@@ -1,4 +1,3 @@
-
 "use client";
 export default function ContratosPage() {
   return (
@@ -57,7 +56,8 @@ export default function ContratosPage() {
       <td style="font-size:.8rem">6 / 6<div class="sub">72%</div></td>
       <td><span class="chip por-vencer">2</span></td>
       <td><span class="act-ico" onclick="openProj('ten1')" title="Ver">👁</span>&nbsp;<span class="act-ico" onclick="deleteContrato('ten1')" title="Eliminar contrato" style="color:#ef4444">🗑</span></td>
-    </tr><tr>
+    </tr></tbody>
+    <tbody id="ct-extra" style="display:none"><tr>
       <td><div class="ct-link" onclick="openProj('can2')" style="font-size:.88rem">• Servicios Candelaria</div><div class="sub">Candelaria</div></td>
       <td style="color:var(--gris);font-size:.8rem">Candelaria</td>
       <td style="font-size:.8rem;color:var(--gris)">01-01-2024</td>
@@ -91,8 +91,15 @@ export default function ContratosPage() {
       <td><span class="chip por-vencer">2</span></td>
       <td><span class="act-ico" onclick="openProj('eol1')" title="Ver">👁</span>&nbsp;<span class="act-ico" onclick="deleteContrato('eol1')" title="Eliminar contrato" style="color:#ef4444">🗑</span></td>
     </tr></tbody>
+      <tfoot>
+        <tr>
+          <td colspan="10" style="text-align:center;padding:12px;border-top:1px solid var(--linea)">
+            <button class="fold-btn" onclick="toggleFold('ct-extra', this, '▼ Mostrar los 3 contratos restantes...', '▲ Mostrar menos')">▼ Mostrar los 3 contratos restantes...</button>
+          </td>
+        </tr>
+      </tfoot>
     </table>
-    <div class="tfoot"><span>Mostrando 1 a 6 de 6 contratos</span><span style="color:var(--azul)">10 por página</span></div>
+    <div class="tfoot"><span>Mostrando 1 a 6 de 6 contratos</span><span style="color:var(--azul)">6 contratos totales</span></div>
   </div>` }} />
   );
 }
