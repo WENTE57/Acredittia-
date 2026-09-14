@@ -2,6 +2,8 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import * as Api from "@/lib/cliente";
+
 export default function LoginPage() {
   const router = useRouter();
   const [tab, setTab] = useState<"login" | "register">("login");
@@ -10,37 +12,154 @@ export default function LoginPage() {
   const [empresa, setEmpresa] = useState("");
   const [rut, setRut] = useState("");
   const [err, setErr] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   React.useEffect(() => {
     router.prefetch("/dashboard");
     router.prefetch("/");
   }, [router]);
 
-  const handleLogin = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const userEmail = email.trim() || "demo@acredittia.cl";
-    const demoUser = {
-      id: "usr_demo",
-      nombre: userEmail.split("@")[0] || "Usuario Demo",
-      email: userEmail,
-      role: "usuario",
-      company: { id: "emp_1", nombre: "Empresa Proveedora" },
-    };
-    localStorage.setItem("acredittia_user", JSON.stringify(demoUser));
-    router.push("/dashboard");
+  const clearFieldError = (field: string) => {
+    if (fieldErrors[field]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+    setErr("");
   };
 
-  const handleRegister = (e?: React.FormEvent) => {
+  const getInputStyle = (field: string) => {
+    if (fieldErrors[field]) {
+      return {
+        borderColor: "#EF4444",
+        boxShadow: "0 0 0 2px rgba(239, 68, 68, 0.25)",
+        marginBottom: "4px",
+      };
+    }
+    return {};
+  };
+
+  const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const demoUser = {
-      id: "usr_demo",
-      nombre: empresa.trim() || "Nueva Empresa SpA",
-      email: email.trim() || "contacto@empresa.cl",
-      role: "usuario",
-      company: { id: "emp_1", nombre: empresa.trim() || "Nueva Empresa SpA" },
-    };
-    localStorage.setItem("acredittia_user", JSON.stringify(demoUser));
-    router.push("/dashboard");
+    setErr("");
+    const newFieldErrors: Record<string, string> = {};
+
+    const userEmail = email.trim();
+    const userPass = password.trim();
+
+    if (!userEmail) {
+      newFieldErrors.lEmail = "Falta ingresar el correo electrónico.";
+    }
+    if (!userPass) {
+      newFieldErrors.lPassword = "Falta ingresar la contraseña.";
+    }
+
+    if (Object.keys(newFieldErrors).length > 0) {
+      setFieldErrors(newFieldErrors);
+      setErr("Por favor completa los campos requeridos para ingresar.");
+      return;
+    }
+
+    setFieldErrors({});
+
+    try {
+      const sesion = await Api.auth.login(userEmail, userPass);
+      Api.setSession(sesion.access_token, sesion.refresh_token, sesion.user);
+      router.push("/dashboard");
+    } catch (error: any) {
+      const code = error?.code || "";
+      const msg = error?.message || "Credenciales inválidas. Revisa tus datos.";
+
+      if (code === "CREDENCIALES_INVALIDAS" || error?.status === 401) {
+        setFieldErrors({
+          lEmail: "Verifica el correo electrónico.",
+          lPassword: "Verifica la contraseña.",
+        });
+        setErr("Correo electrónico o contraseña incorrectos. Revisa ambos campos.");
+      } else if (code === "ACCOUNT_PENDING" || error?.status === 403) {
+        setErr("Tu cuenta está en revisión. Contacta a soporte para su aprobación.");
+      } else if (code === "CUENTA_DESACTIVADA") {
+        setErr("Tu cuenta ha sido desactivada por el administrador.");
+      } else {
+        setErr(msg);
+      }
+    }
+  };
+
+  const handleRegister = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setErr("");
+    const newFieldErrors: Record<string, string> = {};
+
+    const userEmail = email.trim();
+    const userPass = password.trim();
+    const nombreEmpresa = empresa.trim();
+    const rutEmpresa = rut.trim();
+
+    if (!nombreEmpresa) {
+      newFieldErrors.empresa = "Falta ingresar el nombre de la empresa.";
+    }
+    if (!rutEmpresa) {
+      newFieldErrors.rut = "Falta ingresar el RUT de la empresa (ej: 76.543.210-3).";
+    }
+    if (!userEmail) {
+      newFieldErrors.rEmail = "Falta ingresar el correo de contacto.";
+    } else if (!userEmail.includes("@") || !userEmail.includes(".")) {
+      newFieldErrors.rEmail = "Formato de correo inválido (ej: contacto@empresa.cl).";
+    }
+
+    if (!userPass) {
+      newFieldErrors.rPassword = "Falta ingresar la contraseña.";
+    } else {
+      if (userPass.length < 8) {
+        newFieldErrors.rPassword = "La contraseña requiere mínimo 8 caracteres.";
+      } else if (!/[A-Z]/.test(userPass)) {
+        newFieldErrors.rPassword = "La contraseña debe incluir al menos 1 mayúscula (A-Z).";
+      } else if (!/[0-9]/.test(userPass)) {
+        newFieldErrors.rPassword = "La contraseña debe incluir al menos 1 número (0-9).";
+      }
+    }
+
+    if (Object.keys(newFieldErrors).length > 0) {
+      setFieldErrors(newFieldErrors);
+      setErr("Por favor corrige los campos destacados en rojo.");
+      return;
+    }
+
+    setFieldErrors({});
+
+    try {
+      await Api.auth.register({
+        empresa: nombreEmpresa,
+        rut: rutEmpresa,
+        email: userEmail,
+        password: userPass,
+      });
+      const sesion = await Api.auth.login(userEmail, userPass);
+      Api.setSession(sesion.access_token, sesion.refresh_token, sesion.user);
+      router.push("/dashboard");
+    } catch (error: any) {
+      const code = error?.code || "";
+      const msg = error?.message || "Error al registrar la empresa.";
+
+      if (code === "PASSWORD_DEBIL") {
+        setFieldErrors({ rPassword: "Mínimo 8 caracteres, 1 mayúscula y 1 número." });
+        setErr("La contraseña es muy débil. Debe incluir mínimo 8 caracteres, 1 mayúscula y 1 número.");
+      } else if (code === "RUT_INVALIDO") {
+        setFieldErrors({ rut: "RUT inválido o dígito verificador erróneo." });
+        setErr("El RUT ingresado no es válido. Formato ejemplo: 76.543.210-3.");
+      } else if (code === "EMAIL_EN_USO") {
+        setFieldErrors({ rEmail: "Este correo electrónico ya está registrado." });
+        setErr("El correo ingresado ya existe. Intenta ingresar en la pestaña 'Ingresar'.");
+      } else if (code === "RUT_EN_USO") {
+        setFieldErrors({ rut: "Este RUT de empresa ya está registrado." });
+        setErr("El RUT ya existe registrado en el sistema.");
+      } else {
+        setErr(msg);
+      }
+    }
   };
 
   return (
@@ -66,6 +185,7 @@ export default function LoginPage() {
               onClick={() => {
                 setTab("login");
                 setErr("");
+                setFieldErrors({});
               }}
             >
               Ingresar
@@ -76,6 +196,7 @@ export default function LoginPage() {
               onClick={() => {
                 setTab("register");
                 setErr("");
+                setFieldErrors({});
               }}
             >
               Registrar empresa
@@ -91,29 +212,50 @@ export default function LoginPage() {
             <input
               id="l-email"
               className="linput"
+              style={getInputStyle("lEmail")}
               type="email"
               placeholder="Correo electrónico"
               autoComplete="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                clearFieldError("lEmail");
+              }}
             />
+            {fieldErrors.lEmail && (
+              <div style={{ color: "#EF4444", fontSize: "0.8rem", marginTop: "-6px", marginBottom: "10px", fontWeight: 500 }}>
+                ⚠️ {fieldErrors.lEmail}
+              </div>
+            )}
+
             <input
               id="l-pass"
               className="linput"
+              style={getInputStyle("lPassword")}
               type="password"
               placeholder="Contraseña"
               autoComplete="current-password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                clearFieldError("lPassword");
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleLogin();
               }}
             />
+            {fieldErrors.lPassword && (
+              <div style={{ color: "#EF4444", fontSize: "0.8rem", marginTop: "-6px", marginBottom: "10px", fontWeight: 500 }}>
+                ⚠️ {fieldErrors.lPassword}
+              </div>
+            )}
+
             <button className="lbtn" type="submit" id="l-btn">
               Ingresar a la plataforma →
             </button>
-            {err && (
-              <p className="lerr" id="l-err">
+
+            {err && tab === "login" && (
+              <p className="lerr" id="l-err" style={{ marginTop: "12px" }}>
                 {err}
               </p>
             )}
@@ -131,41 +273,87 @@ export default function LoginPage() {
             <input
               id="r-empresa"
               className="linput"
+              style={getInputStyle("empresa")}
               type="text"
               placeholder="Nombre de la empresa"
               value={empresa}
-              onChange={(e) => setEmpresa(e.target.value)}
+              onChange={(e) => {
+                setEmpresa(e.target.value);
+                clearFieldError("empresa");
+              }}
             />
+            {fieldErrors.empresa && (
+              <div style={{ color: "#EF4444", fontSize: "0.8rem", marginTop: "-6px", marginBottom: "10px", fontWeight: 500 }}>
+                ⚠️ {fieldErrors.empresa}
+              </div>
+            )}
+
             <input
               id="r-rut"
               className="linput"
+              style={getInputStyle("rut")}
               type="text"
-              placeholder="RUT empresa (ej: 76.543.210-9)"
+              placeholder="RUT empresa (ej: 76.543.210-3)"
               value={rut}
-              onChange={(e) => setRut(e.target.value)}
+              onChange={(e) => {
+                setRut(e.target.value);
+                clearFieldError("rut");
+              }}
             />
+            {fieldErrors.rut && (
+              <div style={{ color: "#EF4444", fontSize: "0.8rem", marginTop: "-6px", marginBottom: "10px", fontWeight: 500 }}>
+                ⚠️ {fieldErrors.rut}
+              </div>
+            )}
+
             <input
               id="r-email"
               className="linput"
+              style={getInputStyle("rEmail")}
               type="email"
               placeholder="Correo de contacto"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                clearFieldError("rEmail");
+              }}
             />
+            {fieldErrors.rEmail && (
+              <div style={{ color: "#EF4444", fontSize: "0.8rem", marginTop: "-6px", marginBottom: "10px", fontWeight: 500 }}>
+                ⚠️ {fieldErrors.rEmail}
+              </div>
+            )}
+
             <input
               id="r-pass"
               className="linput"
+              style={getInputStyle("rPassword")}
               type="password"
-              placeholder="Contraseña (mínimo 6 caracteres)"
+              placeholder="Contraseña (mínimo 8 caracteres, 1 mayúscula, 1 número)"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                clearFieldError("rPassword");
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleRegister();
               }}
             />
+            {fieldErrors.rPassword && (
+              <div style={{ color: "#EF4444", fontSize: "0.8rem", marginTop: "-6px", marginBottom: "10px", fontWeight: 500 }}>
+                ⚠️ {fieldErrors.rPassword}
+              </div>
+            )}
+
             <button className="lbtn" type="submit" id="r-btn">
               Crear cuenta y comenzar →
             </button>
+
+            {err && tab === "register" && (
+              <p className="lerr" id="r-err" style={{ marginTop: "12px" }}>
+                {err}
+              </p>
+            )}
           </form>
 
           <span
@@ -180,4 +368,6 @@ export default function LoginPage() {
     </>
   );
 }
+
+
 

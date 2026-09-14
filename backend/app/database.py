@@ -219,7 +219,24 @@ def apply_schema(schema_dir: str | None = None) -> int:
     """Aplica los scripts pendientes bajo pg_advisory_lock."""
     sdir = schema_dir or settings.schema_dir
     if not os.path.isdir(sdir):
-        raise RuntimeError(f"No existe el directorio de esquema {sdir}")
+        from .models import Base, _ENUM_VALUES
+        raw = engine.raw_connection()
+        try:
+            raw.driver_connection.autocommit = True
+            cur = raw.cursor()
+            for enum_name, enum_vals in _ENUM_VALUES.items():
+                vals_str = ", ".join(f"'{v}'" for v in enum_vals)
+                cur.execute(f"""
+                    DO $$ BEGIN
+                        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = '{enum_name}') THEN
+                            CREATE TYPE {enum_name} AS ENUM ({vals_str});
+                        END IF;
+                    END $$;
+                """)
+        finally:
+            raw.close()
+        Base.metadata.create_all(engine)
+        return schema_version()
 
     raw = engine.raw_connection()
     autocommit_previo = getattr(raw.driver_connection, "autocommit", False)

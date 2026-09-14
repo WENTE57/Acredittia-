@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { I18nProvider } from "@/context/I18nContext";
 
 export const metadata: Metadata = {
   title: "Acredittia",
@@ -14,8 +15,9 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className="bg-slate-100 text-slate-900 antialiased">
-        {children}
+        <I18nProvider>{children}</I18nProvider>
       </body>
     </html>
   );
 }
+

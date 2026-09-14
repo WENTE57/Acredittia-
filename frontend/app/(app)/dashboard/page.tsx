@@ -1,204 +1,243 @@
-
 "use client";
-export default function DashboardPage() {
-  return (
-    <div dangerouslySetInnerHTML={{ __html: `
-  <div class="dkpis5">
-    <div class="dkpi5"><div class="ic5">📋</div><div><div class="kt">Contratos activos</div><div class="kn">6</div><div class="ks">de 6 contratos totales</div></div></div>
-    <div class="dkpi5"><div class="ic5">🏔️</div><div><div class="kt">Faenas activas</div><div class="kn">6</div><div class="ks">de 6 faenas totales</div></div></div>
-    <div class="dkpi5"><div class="ic5">👥</div><div><div class="kt">Personal acreditado</div><div class="kn">44</div><div class="ks ok">de 58 trabajadores</div></div></div>
-    <div class="dkpi5"><div class="ic5">🚛</div><div><div class="kt">Equipos acreditados</div><div class="kn">30</div><div class="ks ok">de 45 equipos</div></div></div>
-    <div class="dkpi5"><div class="donut-kpi"><svg width="52" height="52" viewBox="0 0 52 52"><circle cx="26" cy="26" r="22" fill="none" stroke="rgba(15,23,42,.08)" stroke-width="5"></circle><circle cx="26" cy="26" r="22" fill="none" stroke="#10B981" stroke-width="5" stroke-dasharray="102.29025680088365 138.23007675795088" stroke-linecap="round"></circle></svg><span class="pct-label">74%</span></div><div><div class="kt">Cumplimiento general</div><div class="kn">74%</div><div class="ks ok">+6% vs. semana anterior</div></div></div>
-  </div>
-  <div style="display:flex;align-items:center;gap:10px;background:#F0FDF4;border:1px solid #86efac;border-radius:12px;padding:10px 16px;margin-bottom:20px">
-    <span style="font-size:1.1rem">🛡️</span>
-    <div style="font-size:.8rem;color:#166534"><b>Vigía IA activo</b> — cada documento que se sube en cualquier contrato se revisa al instante, sin cola de validación manual.</div>
-  </div>
-  <div class="dpanel" style="padding:0;overflow:hidden;margin-bottom:20px">
-    <div class="ph" style="padding:16px 20px 14px;border-bottom:1px solid var(--linea);display:flex;align-items:center;justify-content:space-between">
-      <div><h3 style="font-size:1rem">Acciones pendientes</h3><p style="font-size:.78rem;color:var(--gris);margin:2px 0 0">Documentos que faltan por cargar — resuélvelos desde aquí.</p></div>
-      <span class="chip vencido" style="font-size:.72rem">270 pendientes</span>
-    </div>
-    <div style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--linea)">
-      <span class="chip vencido" style="font-size:.65rem;flex-shrink:0">Alta</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:.85rem;font-weight:700;color:var(--txt)">Contreras Sepúlveda Diego</div>
-        <div style="font-size:.76rem;color:var(--gris)">Contrato de Trabajo · sin cargar · <span style="color:var(--azul)">Los Pelambres</span></div>
-      </div>
-      <button class="btn-outline" style="font-size:.74rem;padding:6px 14px;flex-shrink:0" onclick="openSubject('lp1','personal','dp1')">Solucionar</button>
-    </div><div style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--linea)">
-      <span class="chip vencido" style="font-size:.65rem;flex-shrink:0">Alta</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:.85rem;font-weight:700;color:var(--txt)">Contreras Sepúlveda Diego</div>
-        <div style="font-size:.76rem;color:var(--gris)">Anexo Contrato · sin cargar · <span style="color:var(--azul)">Los Pelambres</span></div>
-      </div>
-      <button class="btn-outline" style="font-size:.74rem;padding:6px 14px;flex-shrink:0" onclick="openSubject('lp1','personal','dp1')">Solucionar</button>
-    </div><div style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--linea)">
-      <span class="chip vencido" style="font-size:.65rem;flex-shrink:0">Alta</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:.85rem;font-weight:700;color:var(--txt)">Contreras Sepúlveda Diego</div>
-        <div style="font-size:.76rem;color:var(--gris)">Certificado de Salud y Examen de Altura · sin cargar · <span style="color:var(--azul)">Los Pelambres</span></div>
-      </div>
-      <button class="btn-outline" style="font-size:.74rem;padding:6px 14px;flex-shrink:0" onclick="openSubject('lp1','personal','dp1')">Solucionar</button>
-    </div><div style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--linea)">
-      <span class="chip vencido" style="font-size:.65rem;flex-shrink:0">Alta</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:.85rem;font-weight:700;color:var(--txt)">Contreras Sepúlveda Diego</div>
-        <div style="font-size:.76rem;color:var(--gris)">Inducción Hombre Nuevo · sin cargar · <span style="color:var(--azul)">Los Pelambres</span></div>
-      </div>
-      <button class="btn-outline" style="font-size:.74rem;padding:6px 14px;flex-shrink:0" onclick="openSubject('lp1','personal','dp1')">Solucionar</button>
-    </div><div style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--linea)">
-      <span class="chip vencido" style="font-size:.65rem;flex-shrink:0">Alta</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:.85rem;font-weight:700;color:var(--txt)">Contreras Sepúlveda Diego</div>
-        <div style="font-size:.76rem;color:var(--gris)">Reglamento Interno · sin cargar · <span style="color:var(--azul)">Los Pelambres</span></div>
-      </div>
-      <button class="btn-outline" style="font-size:.74rem;padding:6px 14px;flex-shrink:0" onclick="openSubject('lp1','personal','dp1')">Solucionar</button>
-    </div>
-    <div style="padding:12px 20px;text-align:center"><span class="linkbtn" style="font-size:.8rem" onclick="navTo('alertas')">Ver los 270 pendientes →</span></div>
-  </div>
-  <div class="dash-2col">
-    <!-- Cumplimiento por contrato -->
-    <div class="dpanel" style="padding:0;overflow:hidden">
-      <div class="ph" style="padding:16px 20px 14px;border-bottom:1px solid var(--linea)">
-        <h3 style="font-size:1rem">Cumplimiento por contrato</h3>
-        <span class="linkbtn" style="font-size:.8rem" onclick="navTo('contratos')">Ver todos los contratos →</span>
-      </div>
-      <table class="vtable" style="background:transparent">
-        <thead><tr>
-          <th>Contrato / Faena</th><th>Estado</th><th>Cumplimiento</th>
-          <th>Personal</th><th>Equipos</th><th>Alertas</th><th></th>
-        </tr></thead>
-        <tbody><tr>
-      <td><div class="ct-link" onclick="openProj('lp1')">Transporte y Operaciones MLP</div><div class="sub">Los Pelambres</div></td>
-      <td><span class="chip activo">Activo</span></td>
-      <td><div style="display:flex;align-items:center;gap:6px"><div class="tbar"><i style="width:77%;background:#10B981"></i></div><span style="font-size:.78rem;font-weight:600;color:#10B981">77%</span></div></td>
-      <td style="font-size:.8rem">18 / 18 <div class="sub">77%</div></td>
-      <td style="font-size:.8rem">15 / 15 <div class="sub">77%</div></td>
-      <td><span class="chip por-vencer">5</span></td>
-      <td><span class="act-ico" onclick="openProj('lp1')" title="Ver">👁</span></td>
-    </tr><tr>
-      <td><div class="ct-link" onclick="openProj('and1')">Servicios Mina Andina</div><div class="sub">Andina</div></td>
-      <td><span class="chip activo">Activo</span></td>
-      <td><div style="display:flex;align-items:center;gap:6px"><div class="tbar"><i style="width:71%;background:#10B981"></i></div><span style="font-size:.78rem;font-weight:600;color:#10B981">71%</span></div></td>
-      <td style="font-size:.8rem">8 / 8 <div class="sub">71%</div></td>
-      <td style="font-size:.8rem">6 / 6 <div class="sub">71%</div></td>
-      <td><span class="chip por-vencer">4</span></td>
-      <td><span class="act-ico" onclick="openProj('and1')" title="Ver">👁</span></td>
-    </tr><tr>
-      <td><div class="ct-link" onclick="openProj('ten1')">Mantención Minera El Teniente</div><div class="sub">El Teniente</div></td>
-      <td><span class="chip activo">Activo</span></td>
-      <td><div style="display:flex;align-items:center;gap:6px"><div class="tbar"><i style="width:72%;background:#10B981"></i></div><span style="font-size:.78rem;font-weight:600;color:#10B981">72%</span></div></td>
-      <td style="font-size:.8rem">8 / 8 <div class="sub">72%</div></td>
-      <td style="font-size:.8rem">6 / 6 <div class="sub">72%</div></td>
-      <td><span class="chip por-vencer">4</span></td>
-      <td><span class="act-ico" onclick="openProj('ten1')" title="Ver">👁</span></td>
-    </tr><tr>
-      <td><div class="ct-link" onclick="openProj('can2')">Servicios Candelaria</div><div class="sub">Candelaria</div></td>
-      <td><span class="chip activo">Activo</span></td>
-      <td><div style="display:flex;align-items:center;gap:6px"><div class="tbar"><i style="width:72%;background:#10B981"></i></div><span style="font-size:.78rem;font-weight:600;color:#10B981">72%</span></div></td>
-      <td style="font-size:.8rem">8 / 8 <div class="sub">72%</div></td>
-      <td style="font-size:.8rem">6 / 6 <div class="sub">72%</div></td>
-      <td><span class="chip por-vencer">4</span></td>
-      <td><span class="act-ico" onclick="openProj('can2')" title="Ver">👁</span></td>
-    </tr><tr>
-      <td><div class="ct-link" onclick="openProj('cas1')">Servicios Caserones</div><div class="sub">Caserones</div></td>
-      <td><span class="chip activo">Activo</span></td>
-      <td><div style="display:flex;align-items:center;gap:6px"><div class="tbar"><i style="width:72%;background:#10B981"></i></div><span style="font-size:.78rem;font-weight:600;color:#10B981">72%</span></div></td>
-      <td style="font-size:.8rem">8 / 8 <div class="sub">72%</div></td>
-      <td style="font-size:.8rem">6 / 6 <div class="sub">72%</div></td>
-      <td><span class="chip por-vencer">4</span></td>
-      <td><span class="act-ico" onclick="openProj('cas1')" title="Ver">👁</span></td>
-    </tr><tr>
-      <td><div class="ct-link" onclick="openProj('eol1')">Servicios Parque Eólico Antofagasta I</div><div class="sub">Parque Eólico Antofagasta I</div></td>
-      <td><span class="chip activo">Activo</span></td>
-      <td><div style="display:flex;align-items:center;gap:6px"><div class="tbar"><i style="width:74%;background:#10B981"></i></div><span style="font-size:.78rem;font-weight:600;color:#10B981">74%</span></div></td>
-      <td style="font-size:.8rem">8 / 8 <div class="sub">74%</div></td>
-      <td style="font-size:.8rem">6 / 6 <div class="sub">74%</div></td>
-      <td><span class="chip por-vencer">4</span></td>
-      <td><span class="act-ico" onclick="openProj('eol1')" title="Ver">👁</span></td>
-    </tr></tbody>
-      </table>
-    </div>
-    <!-- Alertas importantes -->
-    <div class="acard" style="padding:0;overflow:hidden">
-      <div class="ph" style="padding:16px 20px 14px;border-bottom:1px solid var(--linea)">
-        <h3 style="font-size:1rem">Alertas importantes</h3>
-        <span class="linkbtn" style="font-size:.8rem" onclick="navTo('alertas')">Ver todas (30) →</span>
-      </div>
-      <div style="padding:0 16px">
-        <div class="arow r" style="cursor:pointer" onclick="navTo('alertas')">
-      <div class="ai2">⚠️</div>
-      <div class="at" style="flex:1;min-width:0"><b>Anexo Contrato</b><small>Castro Vera Marcelo · Los Pelambres</small></div>
-      <span class="ago" style="color:#f87171">Vencido</span>
-    </div><div class="arow r" style="cursor:pointer" onclick="navTo('alertas')">
-      <div class="ai2">⚠️</div>
-      <div class="at" style="flex:1;min-width:0"><b>Registro de la Charla de Inducción Persona Nueva</b><small>Rojas Fuentes Matías · Andina</small></div>
-      <span class="ago" style="color:#f87171">Vencido</span>
-    </div><div class="arow r" style="cursor:pointer" onclick="navTo('alertas')">
-      <div class="ai2">⚠️</div>
-      <div class="at" style="flex:1;min-width:0"><b>Registro de la Charla de Inducción Persona Nueva</b><small>Leiva Campos Andrés · El Teniente</small></div>
-      <span class="ago" style="color:#f87171">Vencido</span>
-    </div><div class="arow r" style="cursor:pointer" onclick="navTo('alertas')">
-      <div class="ai2">⚠️</div>
-      <div class="at" style="flex:1;min-width:0"><b>Anexo Contrato</b><small>Peña Castillo Diego · Candelaria</small></div>
-      <span class="ago" style="color:#f87171">Vencido</span>
-    </div><div class="arow r" style="cursor:pointer" onclick="navTo('alertas')">
-      <div class="ai2">⚠️</div>
-      <div class="at" style="flex:1;min-width:0"><b>Anexo Contrato</b><small>Donoso Araya Francisca · Caserones</small></div>
-      <span class="ago" style="color:#f87171">Vencido</span>
-    </div>
-      </div>
-    </div>
-  </div>
 
-  <div class="dash-3bot">
-    <!-- Acreditaciones por estado -->
-    <div class="dpanel" style="padding:18px">
-      <h3 style="font-size:.95rem;margin-bottom:14px">Acreditaciones por estado</h3>
-      <div style="display:flex;gap:16px;align-items:center">
-        <div class="donut"><svg width="170" height="170" viewBox="0 0 170 170"><circle cx="85" cy="85" r="52" fill="none" stroke="#eee5da" stroke-width="18"></circle><circle cx="85" cy="85" r="52" fill="none" stroke="#3f8f5b" stroke-width="18" stroke-dasharray="315.7616884574547 10.96394751588383" stroke-dashoffset="0" transform="rotate(-90 85 85)"></circle><circle cx="85" cy="85" r="52" fill="none" stroke="#d68a2e" stroke-width="18" stroke-dasharray="2.1927895031767686 324.53284647016176" stroke-dashoffset="-315.7616884574547" transform="rotate(-90 85 85)"></circle><circle cx="85" cy="85" r="52" fill="none" stroke="#c0392b" stroke-width="18" stroke-dasharray="8.771158012707074 317.95447796063144" stroke-dashoffset="-317.95447796063144" transform="rotate(-90 85 85)"></circle></svg><div class="ctr"><div><b>894</b><small>Total</small></div></div></div>
-        <div style="flex:1">
-          <div style="display:flex;justify-content:space-between;font-size:.8rem;padding:5px 0"><span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:#3f8f5b;display:inline-block"></span>Acreditado</span><span style="font-weight:700">864 <span style="color:#94A3B8;font-weight:400">97%</span></span></div>
-          <div style="display:flex;justify-content:space-between;font-size:.8rem;padding:5px 0"><span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:#d68a2e;display:inline-block"></span>Pendiente</span><span style="font-weight:700">6 <span style="color:#94A3B8;font-weight:400">1%</span></span></div>
-          <div style="display:flex;justify-content:space-between;font-size:.8rem;padding:5px 0"><span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:#c0392b;display:inline-block"></span>Vencido</span><span style="font-weight:700">24 <span style="color:#94A3B8;font-weight:400">3%</span></span></div>
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import * as Api from "@/lib/cliente";
+import type { Kpis, Contrato, Alerta, ProximoVencimiento, ActividadFila } from "@/lib/tipos";
+
+export default function DashboardPage() {
+  const [loading, setLoading] = useState(true);
+  const [kpis, setKpis] = useState<Kpis | null>(null);
+  const [contratosList, setContratosList] = useState<Contrato[]>([]);
+  const [alertasVector, setAlertasVector] = useState<Alerta[]>([]);
+  const [vencimientosList, setVencimientosList] = useState<ProximoVencimiento[]>([]);
+  const [actividadList, setActividadList] = useState<ActividadFila[]>([]);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadDashboardData() {
+      setLoading(true);
+      setApiError(null);
+      try {
+        const [kpisRes, contratosRes, alertasRes, vencimientosRes, actividadRes] = await Promise.allSettled([
+          Api.dashboard.kpis(),
+          Api.contratos.listar({ page_size: 10 }),
+          Api.alertas.listar({ page_size: 5, solo_activas: true }),
+          Api.dashboard.proximosVencimientos({ page_size: 5 }),
+          Api.dashboard.actividad({ page_size: 5 }),
+        ]);
+
+        if (kpisRes.status === "fulfilled") setKpis(kpisRes.value);
+        if (contratosRes.status === "fulfilled") setContratosList(contratosRes.value.items || []);
+        if (alertasRes.status === "fulfilled") setAlertasVector(alertasRes.value.items || []);
+        if (vencimientosRes.status === "fulfilled") setVencimientosList(vencimientosRes.value.items || []);
+        if (actividadRes.status === "fulfilled") setActividadList(actividadRes.value.items || []);
+      } catch (err: any) {
+        console.error("Error al cargar datos del dashboard:", err);
+        setApiError(err.message || "No se pudo establecer conexión con el servidor backend.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadDashboardData();
+  }, []);
+
+  const totalContratos = kpis?.contratos_activos ?? contratosList.length;
+  const totalFaenas = kpis?.faenas_activas ?? 0;
+  const personalAcreditado = kpis?.personal?.acreditados ?? 0;
+  const personalTotal = kpis?.personal?.total ?? 0;
+  const equiposAcreditados = kpis?.equipos?.acreditados ?? 0;
+  const equiposTotal = kpis?.equipos?.total ?? 0;
+  const cumplimientoPct = kpis?.cumplimiento_general_pct ?? 0;
+
+  const sinDatosRegistrados = !loading && totalContratos === 0 && personalTotal === 0 && equiposTotal === 0;
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Banner de información de conexión y datos reales */}
+      {sinDatosRegistrados && (
+        <div className="bg-amber-50 border border-amber-300 text-amber-900 rounded-xl p-4 flex items-start gap-3 shadow-sm">
+          <span className="text-xl">⚠️</span>
+          <div className="space-y-1">
+            <h4 className="font-bold text-sm">Sin datos reales en la base de datos</h4>
+            <p className="text-xs text-amber-800 leading-relaxed">
+              Los datos estáticos de demostración fueron eliminados. Actualmente no existen registros (contratos, personal o equipos) cargados en la base de datos de tu organización. 
+              Puedes comenzar agregando registros en{" "}
+              <Link href="/contratos" className="underline font-semibold text-amber-950">Contratos</Link> o{" "}
+              <Link href="/personal" className="underline font-semibold text-amber-950">Personal</Link>.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {apiError && (
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-xl p-4 flex items-center gap-3 text-xs">
+          <span>❌</span>
+          <div>
+            <b>Conexión backend:</b> {apiError} (El frontend está listo y conectado a la API).
+          </div>
+        </div>
+      )}
+
+      {/* Tarjetas KPI */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        {/* Contratos */}
+        <div className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3 shadow-sm">
+          <div className="text-2xl p-2.5 bg-slate-100 rounded-lg">📋</div>
+          <div>
+            <div className="text-xs text-slate-500 font-medium">Contratos activos</div>
+            <div className="text-xl font-bold text-slate-800">{loading ? "..." : totalContratos}</div>
+            <div className="text-[11px] text-slate-400">de {totalContratos} totales</div>
+          </div>
+        </div>
+
+        {/* Faenas */}
+        <div className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3 shadow-sm">
+          <div className="text-2xl p-2.5 bg-slate-100 rounded-lg">🏔️</div>
+          <div>
+            <div className="text-xs text-slate-500 font-medium">Faenas activas</div>
+            <div className="text-xl font-bold text-slate-800">{loading ? "..." : totalFaenas}</div>
+            <div className="text-[11px] text-slate-400">de {totalFaenas} totales</div>
+          </div>
+        </div>
+
+        {/* Personal */}
+        <div className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3 shadow-sm">
+          <div className="text-2xl p-2.5 bg-slate-100 rounded-lg">👥</div>
+          <div>
+            <div className="text-xs text-slate-500 font-medium">Personal acreditado</div>
+            <div className="text-xl font-bold text-slate-800">{loading ? "..." : personalAcreditado}</div>
+            <div className="text-[11px] text-emerald-600 font-medium">de {personalTotal} trabajadores</div>
+          </div>
+        </div>
+
+        {/* Equipos */}
+        <div className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3 shadow-sm">
+          <div className="text-2xl p-2.5 bg-slate-100 rounded-lg">🚛</div>
+          <div>
+            <div className="text-xs text-slate-500 font-medium">Equipos acreditados</div>
+            <div className="text-xl font-bold text-slate-800">{loading ? "..." : equiposAcreditados}</div>
+            <div className="text-[11px] text-emerald-600 font-medium">de {equiposTotal} equipos</div>
+          </div>
+        </div>
+
+        {/* Cumplimiento General */}
+        <div className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3 shadow-sm">
+          <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center font-bold text-xs">
+            {cumplimientoPct}%
+          </div>
+          <div>
+            <div className="text-xs text-slate-500 font-medium">Cumplimiento general</div>
+            <div className="text-xl font-bold text-slate-800">{loading ? "..." : `${cumplimientoPct}%`}</div>
+            <div className="text-[11px] text-slate-400 font-medium">Datos en vivo</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Banner Vigía IA */}
+      <div className="flex items-center gap-3 bg-emerald-50/80 border border-emerald-200 rounded-xl p-3.5 text-xs text-emerald-900 shadow-sm">
+        <span className="text-lg">🛡️</span>
+        <div>
+          <b>Vigía IA activo</b> — Monitoreo automático integrado a la API y base de datos.
+        </div>
+      </div>
+
+      {/* Acciones Pendientes */}
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="p-4 border-b border-slate-200 flex items-center justify-between">
+          <div>
+            <h3 className="font-bold text-sm text-slate-800">Acciones pendientes</h3>
+            <p className="text-xs text-slate-500">Documentos por cargar o regularizar en la plataforma</p>
+          </div>
+          <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-600">
+            {alertasVector.length} pendientes
+          </span>
+        </div>
+
+        {loading ? (
+          <div className="p-8 text-center text-slate-400 text-xs">Cargando datos desde la API...</div>
+        ) : alertasVector.length === 0 ? (
+          <div className="p-8 text-center text-slate-500 text-xs">
+            ✨ No hay acciones pendientes registradas en este momento.
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {alertasVector.map((alerta) => (
+              <div key={alerta.id} className="p-3.5 flex items-center justify-between text-xs hover:bg-slate-50/50">
+                <div>
+                  <div className="font-bold text-slate-800">{alerta.titulo}</div>
+                  <div className="text-slate-500">{alerta.descripcion}</div>
+                </div>
+                <Link href="/alertas" className="px-3 py-1 bg-slate-100 hover:bg-slate-200 rounded text-slate-700 font-medium transition-colors">
+                  Ver detalle
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Cumplimiento por Contrato & Alertas Importantes */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+          <div className="p-4 border-b border-slate-200 flex justify-between items-center">
+            <h3 className="font-bold text-sm text-slate-800">Cumplimiento por contrato</h3>
+            <Link href="/contratos" className="text-xs text-blue-600 hover:underline">Ver todos los contratos →</Link>
+          </div>
+          {loading ? (
+            <div className="p-8 text-center text-slate-400 text-xs">Cargando contratos...</div>
+          ) : contratosList.length === 0 ? (
+            <div className="p-8 text-center text-slate-400 text-xs space-y-2">
+              <div>No existen contratos registrados en la base de datos.</div>
+              <Link href="/contratos" className="inline-block px-3 py-1.5 bg-blue-600 text-white font-medium rounded text-xs">
+                + Crear primer contrato
+              </Link>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100 text-xs">
+              {contratosList.map((c) => (
+                <div key={c.id} className="p-3.5 flex items-center justify-between">
+                  <div>
+                    <div className="font-bold text-slate-800">{c.nombre}</div>
+                    <div className="text-slate-400 text-[11px]">{c.codigo || "Sin código"}</div>
+                  </div>
+                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded">
+                    {c.estado || "Activo"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Alertas Importantes */}
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+          <div className="p-4 border-b border-slate-200 flex justify-between items-center">
+            <h3 className="font-bold text-sm text-slate-800">Alertas importantes</h3>
+            <Link href="/alertas" className="text-xs text-blue-600 hover:underline">Ver todas →</Link>
+          </div>
+          {loading ? (
+            <div className="p-8 text-center text-slate-400 text-xs">Cargando alertas...</div>
+          ) : alertasVector.length === 0 ? (
+            <div className="p-8 text-center text-slate-400 text-xs">
+              No existen alertas registradas en el sistema.
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100 text-xs">
+              {alertasVector.map((a) => (
+                <div key={a.id} className="p-3.5 flex items-center gap-3">
+                  <span>⚠️</span>
+                  <div className="flex-1">
+                    <div className="font-bold text-slate-800">{a.titulo}</div>
+                    <div className="text-slate-500 text-[11px]">{a.descripcion}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
-    <!-- Actividad reciente -->
-    <div class="dpanel" style="padding:18px">
-      <div class="ph" style="margin-bottom:2px"><h3 style="font-size:.95rem">Actividad reciente</h3><span class="linkbtn" style="font-size:.78rem" onclick="navTo('alertas')">Ver toda →</span></div>
-      <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--linea)">
-    <div style="width:30px;height:30px;border-radius:8px;background:#f1f5f9;display:grid;place-items:center;flex-shrink:0">✅</div>
-    <div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600;color:var(--txt)">Personal acreditado en flp</div><div style="font-size:.72rem;color:var(--gris)">CT-lp1</div></div>
-    <div style="font-size:.7rem;color:var(--gris);white-space:nowrap">Hoy, 10:15</div>
-  </div><div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--linea)">
-    <div style="width:30px;height:30px;border-radius:8px;background:#f1f5f9;display:grid;place-items:center;flex-shrink:0">⚠️</div>
-    <div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600;color:var(--txt)">Documento por vencer próximamente</div><div style="font-size:.72rem;color:var(--gris)">Revisar alertas</div></div>
-    <div style="font-size:.7rem;color:var(--gris);white-space:nowrap">Ayer</div>
-  </div><div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--linea)">
-    <div style="width:30px;height:30px;border-radius:8px;background:#f1f5f9;display:grid;place-items:center;flex-shrink:0">📋</div>
-    <div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600;color:var(--txt)">Nuevo requisito: Inducción de Faena</div><div style="font-size:.72rem;color:var(--gris)">Todas las faenas</div></div>
-    <div style="font-size:.7rem;color:var(--gris);white-space:nowrap">Ayer</div>
-  </div>
-    </div>
-    <!-- Próximos vencimientos -->
-    <div class="dpanel" style="padding:18px">
-      <div class="ph" style="margin-bottom:2px"><h3 style="font-size:.95rem">Próximos vencimientos</h3><span class="linkbtn" style="font-size:.78rem" onclick="navTo('calendario')">Ver calendario →</span></div>
-      <div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--linea);align-items:center">
-      <div style="width:44px;text-align:center;flex-shrink:0"><div style="font-size:1.1rem;font-weight:800;color:var(--azul)">24-AGO</div><div style="font-size:.62rem;color:var(--gris)"></div></div>
-      <div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600;color:var(--txt)">Anexo Contrato</div><div style="font-size:.72rem;color:var(--gris)">Castro Vera Marcelo</div></div>
-      <span class="chip vencido" style="font-size:.65rem">Vencido</span>
-    </div><div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--linea);align-items:center">
-      <div style="width:44px;text-align:center;flex-shrink:0"><div style="font-size:1.1rem;font-weight:800;color:var(--azul)">24-AGO</div><div style="font-size:.62rem;color:var(--gris)"></div></div>
-      <div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600;color:var(--txt)">Registro de la Charla de Inducción Persona Nueva</div><div style="font-size:.72rem;color:var(--gris)">Rojas Fuentes Matías</div></div>
-      <span class="chip vencido" style="font-size:.65rem">Vencido</span>
-    </div><div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--linea);align-items:center">
-      <div style="width:44px;text-align:center;flex-shrink:0"><div style="font-size:1.1rem;font-weight:800;color:var(--azul)">24-AGO</div><div style="font-size:.62rem;color:var(--gris)"></div></div>
-      <div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600;color:var(--txt)">Registro de la Charla de Inducción Persona Nueva</div><div style="font-size:.72rem;color:var(--gris)">Leiva Campos Andrés</div></div>
-      <span class="chip vencido" style="font-size:.65rem">Vencido</span>
-    </div>
-    </div>
-  </div>` }} />
   );
 }

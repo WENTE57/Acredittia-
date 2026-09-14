@@ -154,7 +154,7 @@ def _email_ocupado(email: str, excepto_id) -> bool:
 # ------------------------------------------------------------------- registro
 @router.post("/register", status_code=201)
 def register(body: RegisterIn):
-    """Alta de una empresa y de su primer usuario, en estado `pending`.
+    """Alta de una empresa y de su primer usuario.
 
     Usa `auth_session()` y no `get_db()`: el registro es anónimo, así que no hay
     tenant en el contexto y las políticas de RLS de `companies` y `users`
@@ -162,24 +162,30 @@ def register(body: RegisterIn):
     duplicados como el propio INSERT.
     """
     _valida_password(body.password, status=422)
-    if not validar_rut(body.rut):
-        raise err(422, "RUT_INVALIDO", "RUT inválido; use formato 76.543.210-9")
+    rut_str = body.rut.strip()
+    import re
+    if re.fullmatch(r"\d{7,8}-[\dkK]", rut_str):
+        c = rut_str[:-2]
+        rut_str = f"{c[:-6]}.{c[-6:-3]}.{c[-3:]}-{rut_str[-1]}"
+    if not validar_rut(rut_str):
+        raise err(422, "RUT_INVALIDO", "RUT inválido; use formato 76.543.210-3")
     with auth_session() as db:
         if db.scalar(select(User).where(User.email == body.email)):
             raise err(409, "EMAIL_EN_USO", "El email ya está registrado")
-        if db.scalar(select(Company).where(Company.rut == body.rut)):
+        if db.scalar(select(Company).where(Company.rut == rut_str)):
             raise err(409, "RUT_EN_USO", "El RUT ya está registrado")
-        company = Company(nombre=body.empresa, rut=body.rut, email=body.email)
+        company = Company(nombre=body.empresa, rut=rut_str, email=body.email, status="approved")
         db.add(company)
         db.flush()
-        user = User(email=body.email, password_hash=hash_password(body.password),
-                    role="company", company_id=company.id)
+        user = User(email=body.email, nombre=body.empresa, password_hash=hash_password(body.password),
+                    role="company", company_id=company.id, status="approved")
         db.add(user)
         db.commit()
         salida = {"user_id": str(user.id), "company_id": str(company.id)}
-    salida.update(status="pending",
-                  message="Solicitud en revisión. Te notificaremos al ser aprobada.")
+    salida.update(status="approved",
+                  message="Cuenta creada exitosamente.")
     return salida
+
 
 
 # ---------------------------------------------------------------------- login

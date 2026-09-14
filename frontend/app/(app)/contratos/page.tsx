@@ -1,105 +1,131 @@
 "use client";
+
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import * as Api from "@/lib/cliente";
+import type { Contrato } from "@/lib/tipos";
+
 export default function ContratosPage() {
+  const [loading, setLoading] = useState(true);
+  const [contratosList, setContratosList] = useState<Contrato[]>([]);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    async function fetchContratos() {
+      setLoading(true);
+      try {
+        const res = await Api.contratos.listar({ page_size: 50 });
+        setContratosList(res.items || []);
+      } catch (err) {
+        console.error("Error al cargar contratos:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchContratos();
+  }, []);
+
+  const filtered = contratosList.filter((c) => {
+    if (!search) return true;
+    const term = search.toLowerCase();
+    return (
+      c.nombre?.toLowerCase().includes(term) ||
+      c.codigo?.toLowerCase().includes(term) ||
+      c.faena?.nombre?.toLowerCase().includes(term)
+    );
+  });
+
+  const total = contratosList.length;
+
   return (
-    <div dangerouslySetInnerHTML={{ __html: `
-  <div class="view-head">
-    <div><h2>Contratos</h2><p>Administra todos los contratos de tu empresa en sus diferentes faenas.</p></div>
-    <div class="view-head-actions">
-      <button class="btn-outline" onclick="toast('Exportar — próximamente')">↓ Exportar</button>
-      <button class="btn-primary" onclick="openNewContratoModal()">+ Nuevo contrato</button>
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-slate-800">Contratos</h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Administra los contratos activos y sus requisitos de acreditación.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button className="px-3.5 py-2 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+            + Crear nuevo contrato
+          </button>
+        </div>
+      </div>
+
+      {/* Empty State Banner */}
+      {!loading && total === 0 && (
+        <div className="bg-amber-50 border border-amber-300 text-amber-900 rounded-xl p-4 flex items-start gap-3 shadow-sm">
+          <span className="text-xl">⚠️</span>
+          <div className="space-y-1">
+            <h4 className="font-bold text-sm">Sin datos de contratos en la base de datos</h4>
+            <p className="text-xs text-amber-800 leading-relaxed">
+              No se encontraron contratos registrados actualmente en la base de datos de tu organización.
+              Los datos estáticos de demostración fueron removidos. Puedes hacer clic en <b>"+ Crear nuevo contrato"</b> para agregar uno.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Search */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+        <input
+          type="text"
+          placeholder="Buscar por nombre de contrato, código o faena..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      {/* Table */}
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+        <table className="w-full text-left text-xs border-collapse">
+          <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase text-[10px] tracking-wider">
+            <tr>
+              <th className="p-3.5">Contrato</th>
+              <th className="p-3.5">Código</th>
+              <th className="p-3.5">Faena</th>
+              <th className="p-3.5">Estado</th>
+              <th className="p-3.5 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {loading ? (
+              <tr>
+                <td colSpan={5} className="p-8 text-center text-slate-400">
+                  Cargando contratos...
+                </td>
+              </tr>
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="p-8 text-center text-slate-400">
+                  No se encontraron contratos registrados en la base de datos.
+                </td>
+              </tr>
+            ) : (
+              filtered.map((c) => (
+                <tr key={c.id} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="p-3.5 font-bold text-slate-800">{c.nombre}</td>
+                  <td className="p-3.5 text-slate-500">{c.codigo || "Sin código"}</td>
+                  <td className="p-3.5 text-slate-700">{c.faena?.nombre || "Sin faena"}</td>
+                  <td className="p-3.5">
+                    <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-100 text-emerald-800">
+                      {c.estado || "Vigente"}
+                    </span>
+                  </td>
+                  <td className="p-3.5 text-right">
+                    <Link href={`/contratos/${c.id}`} className="text-blue-600 hover:underline font-medium">
+                      Ver contrato
+                    </Link>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
-  <div class="dkpis5" style="grid-template-columns:repeat(4,1fr)">
-    <div class="dkpi5"><div class="ic5">📋</div><div><div class="kt">Total contratos</div><div class="kn">6</div><div class="ks">de todos los contratos</div></div></div>
-    <div class="dkpi5"><div class="ic5" style="background:rgba(16,185,129,.15)">✅</div><div><div class="kt">Contratos activos</div><div class="kn">6</div><div class="ks ok">100% del total</div></div></div>
-    <div class="dkpi5"><div class="ic5" style="background:rgba(245,158,11,.15)">⏳</div><div><div class="kt">Por vencer (próx. 90 días)</div><div class="kn">0</div><div class="ks warn">0% del total</div></div></div>
-    <div class="dkpi5"><div class="ic5" style="background:rgba(239,68,68,.15)">❌</div><div><div class="kt">Vencidos</div><div class="kn">0</div><div class="ks bad">0% del total</div></div></div>
-  </div>
-  <div class="view-filters">
-    <input class="view-search" placeholder="Buscar contrato, faena o estado..." oninput="filterTable(this.value,'ct-tbl')">
-    <select class="view-select"><option>Estado: Todos</option><option>Activo</option><option>Por vencer</option><option>Vencido</option></select>
-    <select class="view-select"><option>Faena: Todas</option></select>
-  </div>
-  <div class="vtable-wrap">
-    <table class="vtable" id="ct-tbl">
-      <thead><tr><th>Contrato</th><th>Faena</th><th>Inicio</th><th>Término</th><th>Estado</th><th>Cumplimiento</th><th>Personal acreditado</th><th>Equipos acreditados</th><th>Alertas</th><th>Acciones</th></tr></thead>
-      <tbody><tr>
-      <td><div class="ct-link" onclick="openProj('lp1')" style="font-size:.88rem">• Transporte y Operaciones MLP</div><div class="sub">Los Pelambres</div></td>
-      <td style="color:var(--gris);font-size:.8rem">Los Pelambres</td>
-      <td style="font-size:.8rem;color:var(--gris)">01-01-2024</td>
-      <td style="font-size:.8rem;color:var(--gris)">31-12-2025</td>
-      <td><span class="chip activo">Activo</span></td>
-      <td><div style="display:flex;align-items:center;gap:6px"><div class="tbar"><i style="width:77%;background:#10B981"></i></div><span style="font-size:.78rem;font-weight:600;color:#10B981">77%</span></div></td>
-      <td style="font-size:.8rem">18 / 18<div class="sub">77%</div></td>
-      <td style="font-size:.8rem">15 / 15<div class="sub">77%</div></td>
-      <td><span class="chip por-vencer">2</span></td>
-      <td><span class="act-ico" onclick="openProj('lp1')" title="Ver">👁</span>&nbsp;<span class="act-ico" onclick="deleteContrato('lp1')" title="Eliminar contrato" style="color:#ef4444">🗑</span></td>
-    </tr><tr>
-      <td><div class="ct-link" onclick="openProj('and1')" style="font-size:.88rem">• Servicios Mina Andina</div><div class="sub">Andina</div></td>
-      <td style="color:var(--gris);font-size:.8rem">Andina</td>
-      <td style="font-size:.8rem;color:var(--gris)">01-01-2024</td>
-      <td style="font-size:.8rem;color:var(--gris)">31-12-2025</td>
-      <td><span class="chip activo">Activo</span></td>
-      <td><div style="display:flex;align-items:center;gap:6px"><div class="tbar"><i style="width:71%;background:#10B981"></i></div><span style="font-size:.78rem;font-weight:600;color:#10B981">71%</span></div></td>
-      <td style="font-size:.8rem">8 / 8<div class="sub">71%</div></td>
-      <td style="font-size:.8rem">6 / 6<div class="sub">71%</div></td>
-      <td><span class="chip por-vencer">2</span></td>
-      <td><span class="act-ico" onclick="openProj('and1')" title="Ver">👁</span>&nbsp;<span class="act-ico" onclick="deleteContrato('and1')" title="Eliminar contrato" style="color:#ef4444">🗑</span></td>
-    </tr><tr>
-      <td><div class="ct-link" onclick="openProj('ten1')" style="font-size:.88rem">• Mantención Minera El Teniente</div><div class="sub">El Teniente</div></td>
-      <td style="color:var(--gris);font-size:.8rem">El Teniente</td>
-      <td style="font-size:.8rem;color:var(--gris)">01-01-2024</td>
-      <td style="font-size:.8rem;color:var(--gris)">31-12-2025</td>
-      <td><span class="chip activo">Activo</span></td>
-      <td><div style="display:flex;align-items:center;gap:6px"><div class="tbar"><i style="width:72%;background:#10B981"></i></div><span style="font-size:.78rem;font-weight:600;color:#10B981">72%</span></div></td>
-      <td style="font-size:.8rem">8 / 8<div class="sub">72%</div></td>
-      <td style="font-size:.8rem">6 / 6<div class="sub">72%</div></td>
-      <td><span class="chip por-vencer">2</span></td>
-      <td><span class="act-ico" onclick="openProj('ten1')" title="Ver">👁</span>&nbsp;<span class="act-ico" onclick="deleteContrato('ten1')" title="Eliminar contrato" style="color:#ef4444">🗑</span></td>
-    </tr></tbody>
-    <tbody id="ct-extra" style="display:none"><tr>
-      <td><div class="ct-link" onclick="openProj('can2')" style="font-size:.88rem">• Servicios Candelaria</div><div class="sub">Candelaria</div></td>
-      <td style="color:var(--gris);font-size:.8rem">Candelaria</td>
-      <td style="font-size:.8rem;color:var(--gris)">01-01-2024</td>
-      <td style="font-size:.8rem;color:var(--gris)">31-12-2025</td>
-      <td><span class="chip activo">Activo</span></td>
-      <td><div style="display:flex;align-items:center;gap:6px"><div class="tbar"><i style="width:72%;background:#10B981"></i></div><span style="font-size:.78rem;font-weight:600;color:#10B981">72%</span></div></td>
-      <td style="font-size:.8rem">8 / 8<div class="sub">72%</div></td>
-      <td style="font-size:.8rem">6 / 6<div class="sub">72%</div></td>
-      <td><span class="chip por-vencer">2</span></td>
-      <td><span class="act-ico" onclick="openProj('can2')" title="Ver">👁</span>&nbsp;<span class="act-ico" onclick="deleteContrato('can2')" title="Eliminar contrato" style="color:#ef4444">🗑</span></td>
-    </tr><tr>
-      <td><div class="ct-link" onclick="openProj('cas1')" style="font-size:.88rem">• Servicios Caserones</div><div class="sub">Caserones</div></td>
-      <td style="color:var(--gris);font-size:.8rem">Caserones</td>
-      <td style="font-size:.8rem;color:var(--gris)">01-01-2024</td>
-      <td style="font-size:.8rem;color:var(--gris)">31-12-2025</td>
-      <td><span class="chip activo">Activo</span></td>
-      <td><div style="display:flex;align-items:center;gap:6px"><div class="tbar"><i style="width:72%;background:#10B981"></i></div><span style="font-size:.78rem;font-weight:600;color:#10B981">72%</span></div></td>
-      <td style="font-size:.8rem">8 / 8<div class="sub">72%</div></td>
-      <td style="font-size:.8rem">6 / 6<div class="sub">72%</div></td>
-      <td><span class="chip por-vencer">2</span></td>
-      <td><span class="act-ico" onclick="openProj('cas1')" title="Ver">👁</span>&nbsp;<span class="act-ico" onclick="deleteContrato('cas1')" title="Eliminar contrato" style="color:#ef4444">🗑</span></td>
-    </tr><tr>
-      <td><div class="ct-link" onclick="openProj('eol1')" style="font-size:.88rem">• Servicios Parque Eólico Antofagasta I</div><div class="sub">Parque Eólico Antofagasta I</div></td>
-      <td style="color:var(--gris);font-size:.8rem">Parque Eólico Antofagasta I</td>
-      <td style="font-size:.8rem;color:var(--gris)">01-01-2024</td>
-      <td style="font-size:.8rem;color:var(--gris)">31-12-2025</td>
-      <td><span class="chip activo">Activo</span></td>
-      <td><div style="display:flex;align-items:center;gap:6px"><div class="tbar"><i style="width:74%;background:#10B981"></i></div><span style="font-size:.78rem;font-weight:600;color:#10B981">74%</span></div></td>
-      <td style="font-size:.8rem">8 / 8<div class="sub">74%</div></td>
-      <td style="font-size:.8rem">6 / 6<div class="sub">74%</div></td>
-      <td><span class="chip por-vencer">2</span></td>
-      <td><span class="act-ico" onclick="openProj('eol1')" title="Ver">👁</span>&nbsp;<span class="act-ico" onclick="deleteContrato('eol1')" title="Eliminar contrato" style="color:#ef4444">🗑</span></td>
-    </tr></tbody>
-      <tfoot>
-        <tr>
-          <td colspan="10" style="text-align:center;padding:12px;border-top:1px solid var(--linea)">
-            <button class="fold-btn" onclick="toggleFold('ct-extra', this, '▼ Mostrar los 3 contratos restantes...', '▲ Mostrar menos')">▼ Mostrar los 3 contratos restantes...</button>
-          </td>
-        </tr>
-      </tfoot>
-    </table>
-    <div class="tfoot"><span>Mostrando 1 a 6 de 6 contratos</span><span style="color:var(--azul)">6 contratos totales</span></div>
-  </div>` }} />
   );
 }

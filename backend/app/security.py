@@ -54,6 +54,10 @@ def hash_refresh(raw: str) -> str:
 def validar_rut(rut: str) -> bool:
     """Valida formato 99.999.999-K y dígito verificador (módulo 11)."""
     import re
+    rut = (rut or "").strip()
+    if re.fullmatch(r"\d{7,8}-[\dkK]", rut):
+        c = rut[:-2]
+        rut = f"{c[:-6]}.{c[-6:-3]}.{c[-3:]}-{rut[-1]}"
     if not re.fullmatch(r"\d{1,2}\.\d{3}\.\d{3}-[\dkK]", rut):
         return False
     cuerpo = rut.split("-")[0].replace(".", "")
@@ -65,3 +69,4 @@ def validar_rut(rut: str) -> bool:
     resto = 11 - (suma % 11)
     esperado = "0" if resto == 11 else "k" if resto == 10 else str(resto)
     return dv == esperado
+

@@ -1,93 +1,110 @@
-# Acredittia — Aplicación web
+# Acredittia — Plataforma de Acreditación con IA
 
-Plataforma de acreditación de contratistas para faenas mineras y energéticas.
-Implementa el **core funcional** de la Especificación de API Backend v1.0:
-autenticación JWT con aprobación de administrador, contratos por faena,
-personal y equipos con checklists autogenerados (13/10 requisitos + 9 EMSIPOR
-para conductores), subida de documentos con **revisión IA**, vencimientos,
-alertas y dashboard.
+Plataforma inteligente de acreditación de contratistas para faenas mineras, energéticas e industriales en Chile.
 
-## Estructura
+## 🚀 Tecnologías
+
+- **Backend**: Python 3.12 + FastAPI + SQLAlchemy 2.0 (37 tablas PostgreSQL).
+- **Frontend**: Next.js 14 + React + TypeScript + Vanilla CSS / TailwindCSS.
+- **Base de Datos**: PostgreSQL 16 con migraciones automáticas (`migrate.run`) y soporte RLS.
+- **IA**: Motor de revisión documental inteligente para licencias, exámenes de salud, inducciones y contratos.
+
+---
+
+## 📁 Estructura del Proyecto
 
 ```
-app/
-├── docker-compose.yml     # Postgres 16 + API + Web
-├── backend/               # FastAPI + SQLAlchemy 2 (Python 3.12)
-│   └── app/
-│       ├── main.py        # arranque, CORS, cron de vencimientos
-│       ├── models.py      # mapeo del modelo de datos (28 tablas)
-│       ├── seeds.py       # 8 faenas, 42 plantillas, ejemplos, admin y demo
-│       ├── routers/       # auth, admin, faenas, contratos, sujetos, documentos, alertas, dashboard
-│       └── services/      # checklist, vencimientos, storage (local/Azure), IA (simulada/Claude)
-└── frontend/              # Next.js 14 + Tailwind (estética del wireframe)
+Acredittia/
+├── backend/               # Servidor FastAPI & Base de Datos
+│   ├── app/
+│   │   ├── main.py        # Servidor principal, CORS, middlewares y routers
+│   │   ├── models.py      # Mapeo ORM de SQLAlchemy (37 tablas)
+│   │   ├── database.py    # Conexión, RLS y aplicación de esquema
+│   │   ├── security.py    # JWT, hashing de contraseñas y validación módulo 11 de RUT
+│   │   ├── seeds.py       # Datos iniciales para pruebas (contratos, trabajadores, vehículos, etc.)
+│   │   └── routers/       # Auth, Admin, Contratos, Sujetos, Documentos, Alertas, etc.
+│   └── migrate/           # Script de migración autónomo (python -m migrate.run)
+├── frontend/              # Aplicación Web Next.js 14
+│   ├── app/               # Enrutamiento Next App Router (/login, /dashboard, /contratos, etc.)
+│   ├── components/        # Componentes UI (Sidebar, AppHeader, Landing, etc.)
+│   └── lib/               # Cliente API y utilidades (cliente.ts, api.ts)
+└── docker-compose.yml     # Orquestación Docker para producción y desarrollo
 ```
 
-La base de datos se crea con los scripts de `../modelo_datos/` (01–03),
-montados en el primer arranque de Postgres.
+---
 
-## Ejecutar en local
+## 💻 Cómo Ejecutar el Proyecto
 
-Requisitos: Docker Desktop.
+### Opción 1: Con Docker Compose (Recomendado)
+
+Requisito: **Docker Desktop** instalado y en ejecución.
 
 ```bash
-cd app
-docker compose up --build
+docker-compose up --build
 ```
 
-- Web: http://localhost:3000
-- API (OpenAPI): http://localhost:8000/docs
+- **Frontend**: `http://localhost:3000`
+- **Backend API**: `http://localhost:8000`
+- **Documentación OpenAPI**: `http://localhost:8000/docs`
 
-**Cuentas semilla**
+---
+
+### Opción 2: Ejecución Local en Desarrollo (Sin Docker)
+
+#### 1. Backend (FastAPI)
+```bash
+cd backend
+
+# Crear entorno virtual e instalar dependencias
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# Aplicar migración de base de datos
+python -m migrate.run
+
+# Iniciar servidor backend
+uvicorn app.main:app --reload --port 8000
+```
+
+#### 2. Frontend (Next.js)
+```bash
+cd frontend
+
+# Instalar dependencias y levantar entorno de desarrollo
+npm install
+npm run dev
+```
+
+---
+
+## 🔑 Cuentas Semilla Iniciales
 
 | Rol | Email | Contraseña |
 |---|---|---|
-| Administrador | admin@acredittia.cl | Admin2026! |
-| Empresa demo | demo@acredittia.cl | Demo2026! |
+| **Administrador** | `admin@acredittia.cl` | `Admin2026!` |
+| **Empresa Demo** | `demo@acredittia.cl` | `Demo2026!` |
 
-**Flujo de prueba sugerido**: registra una empresa nueva → entra como admin y
-apruébala → entra con la empresa → crea un contrato en Los Pelambres (genera
-10 docs de empresa) → agrega un trabajador conductor (genera 13+9 docs) →
-sube un PDF a un requisito → revisa el resultado de la IA → mira el dashboard.
+*También puedes registrar una empresa nueva directamente desde el formulario del frontend (`http://localhost:3000/login`).*
 
-## Desarrollo sin Docker
+---
+
+## 🧪 Pruebas y Verificación
+
+Para ejecutar la suite de pruebas del backend:
 
 ```bash
-# Backend (requiere Postgres con los scripts 01-03 aplicados)
 cd backend
-pip install -r requirements.txt
-DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/acredittia \
-SCHEMA_DIR=../../modelo_datos STORAGE_DIR=/tmp/uploads \
-uvicorn app.main:app --reload
-
-# Frontend
-cd frontend
-npm install
-NEXT_PUBLIC_API_URL=http://localhost:8000 npm run dev
+./.venv/bin/pytest
 ```
 
-## Configuración (variables de entorno del backend)
+---
 
-| Variable | Default | Descripción |
+## ⚙️ Variables de Entorno (Backend)
+
+| Variable | Descripción | Valor por Defecto |
 |---|---|---|
-| DATABASE_URL | postgres local | Conexión SQLAlchemy (psycopg) |
-| STORAGE_BACKEND | local | `local` o `azure` (Azure Blob Storage) |
-| AZURE_BLOB_CONN / AZURE_BLOB_CONTAINER | — | Solo con storage azure |
-| IA_BACKEND | simulada | `simulada` o `claude` (revisión real con LLM) |
-| ANTHROPIC_API_KEY | — | Solo con IA claude |
-| JWT_SECRET | dev | Cambiar en producción |
-| CORS_ORIGINS | http://localhost:3000 | Orígenes permitidos |
+| `DATABASE_URL` | String de conexión SQLAlchemy a PostgreSQL | `postgresql+psycopg://postgres:postgres@localhost:5432/acredittia` |
+| `JWT_SECRET` | Clave secreta para firmar tokens JWT | `secret_dev_key` |
+| `CORS_ORIGINS` | Orígenes permitidos para CORS | `http://localhost:3000` |
 
-## Estado de las pruebas
-
-El backend fue validado contra PostgreSQL 16.2 real con un smoke test
-end-to-end de 34 verificaciones (auth completo, aprobación admin, checklists
-autogenerados, subida + revisión IA, vencimientos, alertas, aislamiento
-multi-tenant, impersonación admin, bajas). Resultado: **34/34 PASS**.
-El script está en `backend/tests/smoke_test.py`.
-
-## Fuera de alcance de esta versión (ver plan de desarrollo)
-
-Reportes PDF/Excel, calendario, integraciones externas (SIGA, WhatsApp...),
-suscripciones/pagos y extracción IA de contratos: los endpoints están
-especificados en `Acredittia_Especificacion_API_Backend.docx` y planificados
-en `Acredittia_Plan_de_Desarrollo.docx`.

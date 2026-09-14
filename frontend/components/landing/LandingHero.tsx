@@ -72,7 +72,7 @@ export default function LandingHero() {
           />
         </div>
         <div className="hero-full-overlay" />
-        <div className="hero-sector-tag" id="heroBgLabel">
+        <div className="hero-sector-tag" id="heroBgLabel" data-i18n="hero.sectortag">
           ⛏️ Gran Minería
         </div>
         <div className="hero-bg-label">

@@ -53,13 +53,25 @@ def main(argv: list[str] | None = None) -> int:
         log.info("Nada que aplicar")
         return 0
 
-    log.info("Aplicando scripts desde %s", settings.schema_dir)
+    log.info("Aplicando esquema de base de datos...")
     final = apply_schema()
     if final != SCHEMA_VERSION:
         log.error("La migración terminó en versión %s, se esperaba %s",
                   final, SCHEMA_VERSION)
         return 1
     log.info("Esquema aplicado correctamente: versión %s", final)
+
+    from app import seeds
+    from app.database import SessionLocal, set_ctx, reset_ctx
+    log.info("Poblando semillas y datos de prueba...")
+    with SessionLocal() as db:
+        try:
+            set_ctx(is_admin=True)
+            seeds.run(db)
+            log.info("Semillas aplicadas correctamente.")
+        finally:
+            reset_ctx()
+
     return 0
 
 

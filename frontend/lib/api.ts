@@ -21,12 +21,18 @@ import type {
   Usuario,
 } from "./tipos";
 
-const BASE = process.env.NEXT_PUBLIC_API_URL || "";
+export function getBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
+  if (typeof window !== "undefined") {
+    return `${window.location.protocol}//${window.location.hostname}:8000`;
+  }
+  return "http://localhost:8000";
+}
 
 /** Tope de `page_size` en el backend; por encima responde 422. */
 export const PAGE_SIZE_MAX = 100;
-/** Tamaño que aplica el backend cuando el cliente no pide `page_size`. */
 export const PAGE_SIZE_DEFAULT = 25;
+
 
 // ============================================================================
 // Errores
@@ -113,7 +119,7 @@ async function tryRefresh(): Promise<boolean> {
   const r = refreshToken();
   if (!r) return false;
   try {
-    const res = await fetch(`${BASE}/api/v1/auth/refresh`, {
+    const res = await fetch(`${getBaseUrl()}/api/v1/auth/refresh`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh_token: r }),
@@ -194,7 +200,7 @@ export async function api<T = any>(
 
   let res: Response;
   try {
-    res = await fetch(`${BASE}/api/v1${path}${qs(opts.query)}`, {
+    res = await fetch(`${getBaseUrl()}/api/v1${path}${qs(opts.query)}`, {
       method,
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,

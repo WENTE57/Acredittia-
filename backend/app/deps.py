@@ -77,8 +77,8 @@ def get_company_id(
     user: User = Depends(get_current_user),
     x_company_id: str | None = Header(default=None, alias="X-Company-Id"),
 ) -> uuid.UUID:
-    """company_id efectivo. Para el admin proviene del header X-Company-Id."""
-    if user.role in ("company", "contract_admin"):
+    """company_id efectivo. Para el admin proviene del header X-Company-Id o fallback a su empresa/empresa demo."""
+    if user.role in ("company", "contract_admin") and user.company_id:
         return user.company_id
     if x_company_id:
         try:
@@ -88,6 +88,24 @@ def get_company_id(
         # El admin conserva is_admin=true en RLS pero opera sobre esta empresa.
         set_ctx(company_id=cid, is_admin=True, user_id=user.id)
         return cid
+    if user.company_id:
+        set_ctx(company_id=user.company_id, is_admin=(user.role == "admin"), user_id=user.id)
+        return user.company_id
+
+    from sqlalchemy import select
+    from .database import auth_session
+    from .models import Company
+
+    cid = None
+    with auth_session() as db:
+        cid = db.scalar(select(Company.id).where(Company.es_demo.is_(True)).limit(1))
+        if not cid:
+            cid = db.scalar(select(Company.id).limit(1))
+
+    if cid:
+        set_ctx(company_id=cid, is_admin=True, user_id=user.id)
+        return cid
+
     raise err(400, "COMPANY_ID_REQUERIDO",
               "El admin debe indicar X-Company-Id para operar datos de empresa")
 

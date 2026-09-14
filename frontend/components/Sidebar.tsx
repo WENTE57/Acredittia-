@@ -173,6 +173,8 @@ export default function Sidebar({
               href="/admin"
               onClick={(e) => handleNav(e, "/admin")}
               className={`snavi ${isItemActive("/admin") ? "active" : ""}`}
+              title="Panel admin"
+              data-tooltip="Panel admin"
             >
               <span className="ico">🛡️</span>Panel admin
             </Link>
@@ -184,6 +186,8 @@ export default function Sidebar({
                 href={i.href}
                 onClick={(e) => handleNav(e, i.href)}
                 className={`snavi ${isItemActive(i.href) ? "active" : ""}`}
+                title={i.nombre}
+                data-tooltip={i.nombre}
               >
                 <span className="ico">{i.icono}</span>
                 {i.nombre}
@@ -200,6 +204,8 @@ export default function Sidebar({
             href="/config"
             onClick={(e) => handleNav(e, "/config")}
             className={`snavi ${isItemActive("/config") ? "active" : ""}`}
+            title="Configuración"
+            data-tooltip="Configuración"
           >
             <span className="ico">⚙️</span>Configuración
           </Link>
@@ -207,6 +213,8 @@ export default function Sidebar({
             className="snavi"
             onClick={() => alert("Centro de ayuda — próximamente")}
             style={{ cursor: "pointer" }}
+            title="Ayuda"
+            data-tooltip="Ayuda"
           >
             <span className="ico">❓</span>Ayuda
           </a>
@@ -214,6 +222,8 @@ export default function Sidebar({
             className="snavi snavi-logout"
             onClick={salir}
             style={{ cursor: "pointer" }}
+            title="Cerrar sesión"
+            data-tooltip="Cerrar sesión"
           >
             <span className="ico">🚪</span>Cerrar sesión
           </a>
