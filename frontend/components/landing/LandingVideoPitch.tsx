@@ -83,7 +83,7 @@ export default function LandingVideoPitch() {
           >
             {playing ? (
               <iframe
-                src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1"
+                src="https://www.youtube-nocookie.com/embed/HTk2lt_wl0w?autoplay=1"
                 title="Acredittia Pitch Video"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen

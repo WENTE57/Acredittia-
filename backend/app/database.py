@@ -174,12 +174,19 @@ def _tabla_existe(conn, nombre: str) -> bool:
     ), {"t": nombre}).first() is not None
 
 
+def _columna_existe(conn, tabla: str, columna: str) -> bool:
+    return conn.execute(text(
+        "SELECT 1 FROM information_schema.columns "
+        "WHERE table_schema='public' AND table_name=:t AND column_name=:c"
+    ), {"t": tabla, "c": columna}).first() is not None
+
+
 def schema_version() -> int:
     """0 = vacía · 3 = baseline sin RLS · 4 = con RLS · 6 = v1.1 aplicada."""
     with engine.connect() as c:
         if not _tabla_existe(c, "companies"):
             return 0
-        if _tabla_existe(c, "plataforma_credenciales"):
+        if _tabla_existe(c, "plataforma_credenciales") and _tabla_existe(c, "cumplimiento_snapshots"):
             return 6
         rls = c.execute(text(
             "SELECT relrowsecurity FROM pg_class WHERE relname='contratos'"

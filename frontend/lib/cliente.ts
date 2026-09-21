@@ -32,7 +32,7 @@ import type {
   Proveedor, Cargo, CargoIn, CargoPatch, Reporte, ReporteProgramado,
   RequisitoFila, RequisitoTerreno, RequisitosCargo, ResetDemo, ResumenAlertas,
   Revision, RecursoExport, Sesion, Sujeto, SujetoCreado, SujetoDetalle,
-  SyncLog, Tendencia, TipoReporte, Tokens, TrabajadorIn, TrabajadorPatch,
+  SyncLog, Tendencia, TipoRequisito, TipoReporte, Tokens, TrabajadorIn, TrabajadorPatch,
   Usuario, UsuarioEmpresa, Exportacion, Periodo,
 } from "./tipos";
 
@@ -229,6 +229,21 @@ export const requisitos = {
   /** Solo las plantillas activas. La clave del id es `template_id`. */
   plantillas: (params?: ParamsPagina & { ambito?: Ambito; faena_id?: string }) =>
     api<Pagina<PlantillaRequisito>>("/requisitos/templates", { query: q(params) }),
+
+  crearPlantilla: (body: {
+    ambito: Ambito; titulo: string; codigo?: string; tipo?: TipoRequisito;
+    obligatorio?: boolean; faena_id?: string; vigencia_meses?: number;
+    plataforma?: string; aplica_a?: string;
+  }) => api<PlantillaRequisito>("/requisitos/templates", { body }),
+
+  editarPlantilla: (id: string, cambios: {
+    ambito?: Ambito; titulo?: string; codigo?: string; tipo?: TipoRequisito;
+    obligatorio?: boolean; faena_id?: string; vigencia_meses?: number;
+    plataforma?: string; aplica_a?: string; activo?: boolean;
+  }) => patch<PlantillaRequisito>(`/requisitos/templates/${id}`, cambios),
+
+  eliminarPlantilla: (id: string) =>
+    api<{ ok: boolean; message?: string }>(`/requisitos/templates/${id}`, { method: "DELETE" }),
 };
 
 // ============================================================================

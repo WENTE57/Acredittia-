@@ -207,11 +207,8 @@ def run(db: Session) -> None:
         admin_user = User(email="admin@acredittia.cl",
                           password_hash=hash_password("Admin2026!"),
                           nombre="Administrador General",
-                          role="admin", company_id=demo_company.id, status="approved")
+                          role="admin", company_id=None, status="approved")
         db.add(admin_user)
-        db.flush()
-    elif admin_user.company_id is None:
-        admin_user.company_id = demo_company.id
         db.flush()
 
     demo_user = db.scalar(select(User).where(User.email == "demo@acredittia.cl"))
@@ -384,27 +381,31 @@ def run(db: Session) -> None:
                                           estado="activa", habilitado_at=datetime.utcnow() - timedelta(days=100)))
 
         if not db.scalar(select(ContratoPlataforma.id).where(ContratoPlataforma.contrato_id == ct_088.id)):
+            now_dt = datetime.utcnow()
             cp_siga = ContratoPlataforma(company_id=demo_company.id, contrato_id=ct_088.id,
                                          faena_plataforma_id=plat_siga.id if plat_siga else None,
                                          nombre="SIGA MLP", descripcion="Acreditación Personal y Vehículos",
-                                         estado="activa", es_custom=False, orden=1)
+                                         estado="activa", es_custom=False, orden=1,
+                                         habilitado_at=now_dt - timedelta(days=100))
             cp_directic = ContratoPlataforma(company_id=demo_company.id, contrato_id=ct_088.id,
                                              faena_plataforma_id=plat_directic.id if plat_directic else None,
                                              nombre="DIRECTIC MLP", descripcion="Exámenes Médicos y Psicosensométricos",
-                                             estado="activa", es_custom=False, orden=2)
+                                             estado="activa", es_custom=False, orden=2,
+                                             habilitado_at=now_dt - timedelta(days=100))
             db.add_all([cp_siga, cp_directic])
             db.flush()
 
-            # Credenciales de plataforma
+            # Credenciales de plataforma (JWE compact de 5 partes validado por fn_check_credencial)
+            dummy_jwe = "eyJhbGciOiJSU0EtT0FFUC0yNTYiLCJlbmMiOiJBMjU2R0NNIn0.b3BlbnNzaA.aXZ2YWx1ZQ.Y2lwaGVydGV4dA.dGFn"
             db.add_all([
                 PlataformaCredencial(company_id=demo_company.id, contrato_plataforma_id=cp_siga.id,
                                      nombre="Acceso SIGA Operaciones", usuario="demo_siga_usr",
-                                     credencial_jwe="enc_jwe_dummy_token_siga", kid="key-siga-v1",
-                                     estado="activa", expira_at=datetime.utcnow() + timedelta(days=180)),
+                                     credencial_jwe=dummy_jwe, kid="key-siga-v1",
+                                     estado="activa", expira_at=now_dt + timedelta(days=180)),
                 PlataformaCredencial(company_id=demo_company.id, contrato_plataforma_id=cp_directic.id,
                                      nombre="Acceso DIRECTIC Salud", usuario="demo_directic_usr",
-                                     credencial_jwe="enc_jwe_dummy_token_directic", kid="key-dir-v1",
-                                     estado="activa", expira_at=datetime.utcnow() + timedelta(days=120)),
+                                     credencial_jwe=dummy_jwe, kid="key-dir-v1",
+                                     estado="activa", expira_at=now_dt + timedelta(days=120)),
             ])
             db.flush()
 
@@ -529,7 +530,7 @@ def run(db: Session) -> None:
                 (Documento.sujeto_id == sj_target.id) & (Documento.titulo == doc_title)))
             if not doc:
                 doc = Documento(company_id=demo_company.id, template_id=tmpl_obj.id if tmpl_obj else None,
-                                sujeto_id=sj_target.id, contrato_id=sj_target.contrato_id,
+                                sujeto_id=sj_target.id, contrato_id=None,
                                 titulo=doc_title, obligatorio=True, estado=est_db,
                                 vence=v_date, estado_calc=est_calc, es_emsipor=False)
                 db.add(doc)
@@ -734,7 +735,7 @@ def run(db: Session) -> None:
             d = base_date + timedelta(days=i)
             # Simular progreso gradual del cumplimiento de 76% a 88%
             pct = min(95, 76 + int(i * 0.4) + (i % 3))
-            docs_ok = 32 + int(i * 0.5)
+            docs_ok = min(45, 32 + int(i * 0.4))
             snapshots.append(CumplimientoSnapshot(
                 company_id=demo_company.id, contrato_id=None, fecha=d,
                 cumplimiento_pct=pct, docs_ok=docs_ok, docs_total=45,

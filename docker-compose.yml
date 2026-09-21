@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:16
+    restart: unless-stopped
     environment:
       POSTGRES_DB: acredittia
       POSTGRES_USER: postgres
@@ -13,7 +14,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d acredittia"]
       interval: 3s
@@ -22,6 +23,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     command: redis-server --save "" --appendonly no
     ports:
       - "6379:6379"
@@ -43,10 +45,12 @@ services:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/acredittia
       SCHEMA_DIR: /schema
     volumes:
-      - ../modelo_datos:/schema:ro
+      - ./backend:/srv
+      - ./modelo_datos:/schema:ro
 
   api:
     build: ./backend
+    restart: unless-stopped
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -60,8 +64,8 @@ services:
       SCHEMA_DIR: /schema
       DB_RLS_ENABLED: "true"
       JWT_SECRET: dev-secret-cambiar-en-produccion
-      CORS_ORIGINS: http://localhost:3000
-      PUBLIC_BASE_URL: http://localhost:8000
+      CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000,http://localhost:8000,http://localhost:8001,http://127.0.0.1:8001
+      PUBLIC_BASE_URL: http://localhost:8001
       STORAGE_BACKEND: local          # azure en producción
       STORAGE_DIR: /data/uploads
       QUEUE_BACKEND: celery           # inproc para ejecutar sin Redis
@@ -70,14 +74,16 @@ services:
       KEYS_DIR: /data/keys
       IA_BACKEND: simulada            # claude para revisión real
     volumes:
+      - ./backend:/srv
       - uploads:/data/uploads
       - keys:/data/keys
-      - ../modelo_datos:/schema:ro
+      - ./modelo_datos:/schema:ro
     ports:
-      - "8000:8000"
+      - "8001:8000"
 
   worker:
     build: ./backend
+    restart: unless-stopped
     command: celery -A worker.celery_app worker --loglevel=info --concurrency=2
     depends_on:
       migrate:
@@ -97,12 +103,14 @@ services:
       KEYS_DIR: /data/keys
       IA_BACKEND: simulada
     volumes:
+      - ./backend:/srv
       - uploads:/data/uploads
       - keys:/data/keys
-      - ../modelo_datos:/schema:ro
+      - ./modelo_datos:/schema:ro
 
   beat:
     build: ./backend
+    restart: unless-stopped
     command: celery -A worker.celery_app beat --loglevel=info -s /tmp/celerybeat-schedule
     depends_on:
       redis:
@@ -111,12 +119,15 @@ services:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/acredittia
       QUEUE_BACKEND: celery
       REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./backend:/srv
 
   web:
     build:
       context: ./frontend
       args:
-        NEXT_PUBLIC_API_URL: http://localhost:8000
+        NEXT_PUBLIC_API_URL: http://localhost:8001
+    restart: unless-stopped
     depends_on:
       - api
     ports:

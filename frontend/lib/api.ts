@@ -22,11 +22,14 @@ import type {
 } from "./tipos";
 
 export function getBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
   if (typeof window !== "undefined") {
+    const override = (window as any).__API_URL__;
+    if (override) return override;
+    const envUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (envUrl) return envUrl;
     return `${window.location.protocol}//${window.location.hostname}:8000`;
   }
-  return "http://localhost:8000";
+  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 }
 
 /** Tope de `page_size` en el backend; por encima responde 422. */
@@ -200,12 +203,16 @@ export async function api<T = any>(
 
   let res: Response;
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
     res = await fetch(`${getBaseUrl()}/api/v1${path}${qs(opts.query)}`, {
       method,
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
     });
-  } catch {
+    clearTimeout(timeoutId);
+  } catch (err: any) {
     throw new ApiError("SIN_CONEXION",
       "No se pudo contactar con el servidor. Revisa tu conexión.", 0);
   }

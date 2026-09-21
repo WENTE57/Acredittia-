@@ -49,17 +49,20 @@ def main(argv: list[str] | None = None) -> int:
         log.info("Esquema al día")
         return 0
 
-    if actual >= SCHEMA_VERSION:
-        log.info("Nada que aplicar")
+    forzar_semillas = "--semillas" in argv or "--seeds" in argv
+
+    if actual >= SCHEMA_VERSION and not forzar_semillas:
+        log.info("Esquema al día. (Usa --semillas para forzar la carga de datos demo)")
         return 0
 
-    log.info("Aplicando esquema de base de datos...")
-    final = apply_schema()
-    if final != SCHEMA_VERSION:
-        log.error("La migración terminó en versión %s, se esperaba %s",
-                  final, SCHEMA_VERSION)
-        return 1
-    log.info("Esquema aplicado correctamente: versión %s", final)
+    if actual < SCHEMA_VERSION:
+        log.info("Aplicando esquema de base de datos...")
+        final = apply_schema()
+        if final != SCHEMA_VERSION:
+            log.error("La migración terminó en versión %s, se esperaba %s",
+                      final, SCHEMA_VERSION)
+            return 1
+        log.info("Esquema aplicado correctamente: versión %s", final)
 
     from app import seeds
     from app.database import SessionLocal, set_ctx, reset_ctx

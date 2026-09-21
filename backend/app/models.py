@@ -208,7 +208,7 @@ class RequisitoTemplate(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=_uuid)
     ambito: Mapped[str] = mapped_column(pg_enum('req_ambito'))
     titulo: Mapped[str] = mapped_column(Text)
-    codigo: Mapped[str | None] = mapped_column(Text, unique=True)
+    codigo: Mapped[str | None] = mapped_column(Text)
     tipo: Mapped[str | None] = mapped_column(pg_enum('req_tipo'))
     obligatorio: Mapped[bool] = mapped_column(Boolean, default=True)
     ejemplo_clave: Mapped[str | None] = mapped_column(ForeignKey("doc_ejemplos.clave"))
@@ -219,6 +219,7 @@ class RequisitoTemplate(Base):
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
 
 
 class Contrato(Base):

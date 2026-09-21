@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 import uuid
 
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import distinct, func, or_, select
 from sqlalchemy.orm import Session
@@ -60,7 +61,7 @@ def _faenas_visibles(cid: uuid.UUID, scope: uuid.UUID | None):
 
 
 def _catalogo_visible(cid: uuid.UUID, scope: uuid.UUID | None):
-    """Plantillas activas aplicables a la empresa: estándar + de sus faenas."""
+    """Plantillas activas aplicables a la empresa: estándar (globales) + de sus faenas."""
     return select(RequisitoTemplate).where(
         RequisitoTemplate.activo.is_(True),
         or_(RequisitoTemplate.faena_id.is_(None),
@@ -124,7 +125,8 @@ def _estado_agregado(c: dict) -> str:
 
 def _fila_out(t: RequisitoTemplate, c: dict) -> dict:
     return {
-        "template_id": str(t.id), "codigo": t.codigo, "titulo": t.titulo,
+        "template_id": str(t.id), "company_id": None,
+        "codigo": t.codigo, "titulo": t.titulo,
         "tipo": t.tipo, "ambito": t.ambito, "obligatorio": t.obligatorio,
         "vigencia_meses": t.vigencia_meses, "plataforma": t.plataforma,
         "aplica_a": t.aplica_a, "ejemplo_clave": t.ejemplo_clave,
@@ -135,9 +137,10 @@ def _fila_out(t: RequisitoTemplate, c: dict) -> dict:
 
 
 def _template_out(t: RequisitoTemplate) -> dict:
-    """Plantilla en modo lectura, sin agregados de la empresa."""
+    """Plantilla en modo lectura/escritura."""
     return {
-        "template_id": str(t.id), "codigo": t.codigo, "titulo": t.titulo,
+        "template_id": str(t.id), "company_id": None,
+        "codigo": t.codigo, "titulo": t.titulo,
         "tipo": t.tipo, "ambito": t.ambito, "obligatorio": t.obligatorio,
         "vigencia_meses": t.vigencia_meses, "plataforma": t.plataforma,
         "aplica_a": t.aplica_a, "ejemplo_clave": t.ejemplo_clave,
@@ -252,44 +255,129 @@ def listar(ambito: str | None = Query(None),
 def listar_templates(ambito: str | None = Query(None),
                      faena_id: uuid.UUID | None = Query(None),
                      p: Page = Depends(paginacion),
-                     db: Session = Depends(get_db),
-                     cid: uuid.UUID = Depends(get_company_id),
-                     user: User = Depends(get_current_user)):
-    """Plantillas vigentes para la empresa, en modo lectura.
-
-    Es el catálogo maestro sin agregados: lo que se instanciaría a un sujeto
-    nuevo. La empresa no lo edita —lo mantiene Acredittia en `admin`— y por eso
-    solo se devuelven las activas. Con `faena_id` se responde «qué me pedirá
-    esta faena»: sus plantillas propias más las estándar, que siempre aplican.
-    """
-    if ambito and ambito not in AMBITOS:
-        raise err(400, "AMBITO_INVALIDO",
-                  f"Ámbito debe ser uno de: {', '.join(AMBITOS)}")
-
-    scope = contrato_scope(user)
-    if faena_id:
-        # Una faena en la que la empresa no tiene contratos es 404 y no 403:
-        # para esta cuenta simplemente no existe (§3.3).
-        visibles = set(db.scalars(_faenas_visibles(cid, scope)))
-        if faena_id not in visibles:
-            raise err(404, "NO_ENCONTRADO",
-                      "La empresa no tiene contratos en esa faena")
-        q = select(RequisitoTemplate).where(
-            RequisitoTemplate.activo.is_(True),
-            or_(RequisitoTemplate.faena_id.is_(None),
-                RequisitoTemplate.faena_id == faena_id))
-    else:
-        q = _catalogo_visible(cid, scope)
-
+                     db: Session = Depends(get_db)):
+    """Solo las plantillas activas del catálogo."""
+    q = select(RequisitoTemplate).where(RequisitoTemplate.activo.is_(True))
     if ambito:
+        if ambito not in AMBITOS:
+            raise err(400, "AMBITO_INVALIDO", f"Ámbito debe ser uno de: {', '.join(AMBITOS)}")
         q = q.where(RequisitoTemplate.ambito == ambito)
+    if faena_id:
+        q = q.where(or_(RequisitoTemplate.faena_id.is_(None), RequisitoTemplate.faena_id == faena_id))
     if p.search:
         like = f"%{p.search}%"
         q = q.where(or_(RequisitoTemplate.titulo.ilike(like),
                         RequisitoTemplate.codigo.ilike(like),
                         RequisitoTemplate.plataforma.ilike(like)))
 
-    total = db.scalar(select(func.count()).select_from(q.subquery())) or 0
     q = aplicar_orden(q, RequisitoTemplate, p.sort, ORDEN_TEMPLATES, "titulo")
-    filas = list(db.scalars(q.offset(p.offset).limit(p.page_size)))
-    return sobre([_template_out(t) for t in filas], total, p)
+    total = db.scalar(select(func.count()).select_from(q.subquery())) or 0
+    plantillas = list(db.scalars(q.offset(p.offset).limit(p.page_size)))
+    return sobre([_template_out(t) for t in plantillas], total, p)
+
+
+# -------------------------------------------------- CRUD de Plantillas por Empresa
+class TemplateIn(BaseModel):
+    ambito: str
+    titulo: str
+    codigo: str | None = None
+    tipo: str | None = None
+    obligatorio: bool = True
+    ejemplo_clave: str | None = None
+    faena_id: uuid.UUID | None = None
+    vigencia_meses: int | None = None
+    plataforma: str | None = None
+    aplica_a: str | None = None
+    activo: bool = True
+
+
+class TemplatePatch(BaseModel):
+    ambito: str | None = None
+    titulo: str | None = None
+    codigo: str | None = None
+    tipo: str | None = None
+    obligatorio: bool | None = None
+    ejemplo_clave: str | None = None
+    faena_id: uuid.UUID | None = None
+    vigencia_meses: int | None = None
+    plataforma: str | None = None
+    aplica_a: str | None = None
+    activo: bool | None = None
+
+
+@router.post("/templates")
+def crear_template(data: TemplateIn,
+                   db: Session = Depends(get_db)):
+    """Crea una nueva plantilla de requisito en el catálogo de requisitos."""
+    if data.ambito not in AMBITOS:
+        raise err(400, "AMBITO_INVALIDO", f"Ámbito debe ser uno de: {', '.join(AMBITOS)}")
+    if data.tipo and data.tipo not in TIPOS:
+        raise err(400, "TIPO_INVALIDO", f"Tipo debe ser uno de: {', '.join(TIPOS)}")
+
+    t = RequisitoTemplate(
+        ambito=data.ambito,
+        titulo=data.titulo.strip(),
+        codigo=data.codigo.strip() if data.codigo else None,
+        tipo=data.tipo,
+        obligatorio=data.obligatorio,
+        ejemplo_clave=data.ejemplo_clave,
+        faena_id=data.faena_id,
+        vigencia_meses=data.vigencia_meses,
+        plataforma=data.plataforma,
+        aplica_a=data.aplica_a,
+        activo=data.activo,
+    )
+    db.add(t)
+    db.commit()
+    db.refresh(t)
+    return _template_out(t)
+
+
+@router.put("/templates/{template_id}")
+def editar_template(template_id: uuid.UUID,
+                    data: TemplatePatch,
+                    db: Session = Depends(get_db)):
+    """Edita una plantilla existente."""
+    t = db.get(RequisitoTemplate, template_id)
+    if not t or not t.activo:
+        raise err(404, "NO_ENCONTRADO", "Plantilla de requisito no existe")
+
+    if data.ambito:
+        if data.ambito not in AMBITOS:
+            raise err(400, "AMBITO_INVALIDO", f"Ámbito debe ser uno de: {', '.join(AMBITOS)}")
+        t.ambito = data.ambito
+    if data.tipo is not None:
+        if data.tipo and data.tipo not in TIPOS:
+            raise err(400, "TIPO_INVALIDO", f"Tipo debe ser uno de: {', '.join(TIPOS)}")
+        t.tipo = data.tipo
+    if data.titulo is not None:
+        t.titulo = data.titulo.strip()
+    if data.codigo is not None:
+        t.codigo = data.codigo.strip() if data.codigo else None
+    if data.obligatorio is not None:
+        t.obligatorio = data.obligatorio
+    if data.vigencia_meses is not None:
+        t.vigencia_meses = data.vigencia_meses
+    if data.plataforma is not None:
+        t.plataforma = data.plataforma
+    if data.aplica_a is not None:
+        t.aplica_a = data.aplica_a
+    if data.activo is not None:
+        t.activo = data.activo
+
+    db.commit()
+    db.refresh(t)
+    return _template_out(t)
+
+
+@router.delete("/templates/{template_id}")
+def eliminar_template(template_id: uuid.UUID,
+                      db: Session = Depends(get_db)):
+    """Desactiva (soft delete) una plantilla de requisito."""
+    t = db.get(RequisitoTemplate, template_id)
+    if not t or not t.activo:
+        raise err(404, "NO_ENCONTRADO", "Plantilla de requisito no existe")
+
+    t.activo = False
+    db.commit()
+    return {"ok": True, "message": "Plantilla desactivada correctamente"}

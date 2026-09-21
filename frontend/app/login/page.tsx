@@ -259,8 +259,19 @@ export default function LoginPage() {
                 {err}
               </p>
             )}
-            <div className="ldemo">
-              <p>¿Quieres probar la plataforma? Ingresa directamente con tu correo o solicita acceso demo.</p>
+            <div className="ldemo space-y-2">
+              <p>¿Quieres probar la plataforma? Ingresa con la cuenta Demo preconfigurada:</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("demo@acredittia.cl");
+                  setPassword("Demo2026!");
+                  handleLogin();
+                }}
+                className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-2 shadow-sm cursor-pointer mt-2"
+              >
+                ⚡ Ingresar como Demo (demo@acredittia.cl)
+              </button>
             </div>
           </form>
 
