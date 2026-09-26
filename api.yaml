@@ -1,0 +1,58 @@
+location: northcentralus
+name: acredittia-api
+properties:
+  configuration:
+    ingress:
+      external: true
+      targetPort: 8000
+    registries:
+    - passwordSecretRef: registry-password
+      server: acredittiaregistry.azurecr.io
+      username: acredittiaregistry
+    secrets:
+    - name: registry-password
+      value: "${ACR_PASSWORD}"
+    - name: db-url
+      value: "${DATABASE_URL}"
+    - name: jwt-secret
+      value: "${JWT_SECRET}"
+  environmentId: /subscriptions/589fa66c-14d4-4148-a367-76aec6540c8f/resourceGroups/rg-acredittia/providers/Microsoft.App/managedEnvironments/acredittia-env
+  template:
+    containers:
+    - env:
+      - name: DATABASE_URL
+        secretRef: db-url
+      - name: SCHEMA_DIR
+        value: /schema
+      - name: DB_RLS_ENABLED
+        value: "true"
+      - name: JWT_SECRET
+        secretRef: jwt-secret
+      - name: CORS_ORIGINS
+        value: "https://acredittia.vercel.app"
+      - name: PUBLIC_BASE_URL
+        value: "https://acredittia-api.northcentralus.azurecontainerapps.io"
+      - name: STORAGE_BACKEND
+        value: azure
+      - name: AZURE_STORAGE_ACCOUNT
+        value: acredittiablobs
+      - name: AZURE_BLOB_CONTAINER
+        value: docs
+      - name: QUEUE_BACKEND
+        value: celery
+      - name: REDIS_URL
+        value: "redis://acredittia-redis:6379/0"
+      - name: JWE_BACKEND
+        value: keyvault
+      - name: AZURE_KEYVAULT_URL
+        value: "https://acredittia-kv.vault.azure.net/"
+      - name: IA_BACKEND
+        value: simulada
+      image: acredittiaregistry.azurecr.io/acredittia-backend:v1
+      name: acredittia-api
+      resources:
+        cpu: 0.5
+        memory: 1Gi
+    scale:
+      minReplicas: 0
+      maxReplicas: 2

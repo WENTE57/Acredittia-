@@ -1,0 +1,36 @@
+location: northcentralus
+name: acredittia-migrate
+properties:
+  configuration:
+    registries:
+    - passwordSecretRef: registry-password
+      server: acredittiaregistry.azurecr.io
+      username: acredittiaregistry
+    replicaRetryLimit: 0
+    replicaTimeout: 300
+    secrets:
+    - name: registry-password
+      value: "${ACR_PASSWORD}"
+    - name: db-url
+      value: "${DATABASE_URL}"
+    triggerType: Manual
+    manualTriggerConfig:
+      replicaCompletionCount: 1
+      parallelism: 1
+  environmentId: /subscriptions/589fa66c-14d4-4148-a367-76aec6540c8f/resourceGroups/rg-acredittia/providers/Microsoft.App/managedEnvironments/acredittia-env
+  template:
+    containers:
+    - command:
+      - python
+      - "-m"
+      - migrate.run
+      env:
+      - name: DATABASE_URL
+        secretRef: db-url
+      - name: SCHEMA_DIR
+        value: /schema
+      image: acredittiaregistry.azurecr.io/acredittia-backend:v1
+      name: acredittia-migrate
+      resources:
+        cpu: 0.25
+        memory: 0.5Gi
