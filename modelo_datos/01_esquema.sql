@@ -156,6 +156,7 @@ CREATE TABLE requisito_templates (
   tipo           req_tipo,
   obligatorio    boolean NOT NULL DEFAULT true,
   ejemplo_clave  text REFERENCES doc_ejemplos(clave) ON DELETE SET NULL,
+  archivo_ejemplo text,
   faena_id       uuid REFERENCES faenas(id) ON DELETE CASCADE,  -- NULL = estándar general
   vigencia_meses smallint CHECK (vigencia_meses IS NULL OR vigencia_meses BETWEEN 1 AND 120),
   plataforma     text,                 -- EMSIPOR: SIGA | DIRECTIC | Academia MLP | EMSIPOR

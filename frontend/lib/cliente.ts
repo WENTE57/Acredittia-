@@ -233,13 +233,13 @@ export const requisitos = {
   crearPlantilla: (body: {
     ambito: Ambito; titulo: string; codigo?: string; tipo?: TipoRequisito;
     obligatorio?: boolean; faena_id?: string; vigencia_meses?: number;
-    plataforma?: string; aplica_a?: string;
+    plataforma?: string; aplica_a?: string; archivo_ejemplo?: string;
   }) => api<PlantillaRequisito>("/requisitos/templates", { body }),
 
   editarPlantilla: (id: string, cambios: {
     ambito?: Ambito; titulo?: string; codigo?: string; tipo?: TipoRequisito;
     obligatorio?: boolean; faena_id?: string; vigencia_meses?: number;
-    plataforma?: string; aplica_a?: string; activo?: boolean;
+    plataforma?: string; aplica_a?: string; activo?: boolean; archivo_ejemplo?: string;
   }) => patch<PlantillaRequisito>(`/requisitos/templates/${id}`, cambios),
 
   eliminarPlantilla: (id: string) =>

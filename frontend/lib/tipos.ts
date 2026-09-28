@@ -337,6 +337,7 @@ export type PlantillaRequisito = {
   vigencia_meses: number | null;
   plataforma: string | null;
   ejemplo_clave: string | null;
+  archivo_ejemplo?: string | null;
   faena_id: string | null;
 };
 
@@ -1041,6 +1042,7 @@ export type RequisitoFila = {
   obligatorio: boolean;
   plataforma: string | null;
   ejemplo_clave: string | null;
+  archivo_ejemplo?: string | null;
   vigencia_meses: number | null;
   estado: EstadoCalc;
   docs: number;

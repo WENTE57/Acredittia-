@@ -50,8 +50,9 @@ SCHEMA_SCRIPTS = [
     "03_triggers.sql",
     "04_rls.sql",
     "06_migracion_v11.sql",
+    "07_migracion_v12.sql",
 ]
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 MIGRATION_LOCK_ID = 918273        # clave del pg_advisory_lock de migración
 
 
@@ -182,10 +183,12 @@ def _columna_existe(conn, tabla: str, columna: str) -> bool:
 
 
 def schema_version() -> int:
-    """0 = vacía · 3 = baseline sin RLS · 4 = con RLS · 6 = v1.1 aplicada."""
+    """0 = vacía · 3 = baseline sin RLS · 4 = con RLS · 6 = v1.1 aplicada · 7 = archivo_ejemplo."""
     with engine.connect() as c:
         if not _tabla_existe(c, "companies"):
             return 0
+        if _columna_existe(c, "requisito_templates", "archivo_ejemplo"):
+            return 7
         if _tabla_existe(c, "plataforma_credenciales") and _tabla_existe(c, "cumplimiento_snapshots"):
             return 6
         rls = c.execute(text(
@@ -258,9 +261,13 @@ def apply_schema(schema_dir: str | None = None) -> int:
             if actual == 0:
                 pendientes = SCHEMA_SCRIPTS
             elif actual == 3:
-                pendientes = ["04_rls.sql", "06_migracion_v11.sql"]
+                pendientes = ["04_rls.sql", "06_migracion_v11.sql", "07_migracion_v12.sql"]
+            elif actual == 4:
+                pendientes = ["06_migracion_v11.sql", "07_migracion_v12.sql"]
+            elif actual == 6:
+                pendientes = ["07_migracion_v12.sql"]
             else:
-                pendientes = ["06_migracion_v11.sql"]
+                pendientes = []
 
             for nombre in pendientes:
                 ruta = os.path.join(sdir, nombre)

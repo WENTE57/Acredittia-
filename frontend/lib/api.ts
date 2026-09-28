@@ -210,6 +210,7 @@ export async function api<T = any>(
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
       signal: controller.signal,
+      cache: "no-store",
     });
     clearTimeout(timeoutId);
   } catch (err: any) {
