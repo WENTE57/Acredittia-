@@ -262,3 +262,9 @@ def make_tmp_path(company_id, prefijo: str, filename: str) -> str:
     """Blobs temporales de extracción IA; se purgan a las 24 horas."""
     safe = os.path.basename(filename).replace("\\", "_")
     return f"tmp/{company_id}/{prefijo}_{uuid.uuid4().hex[:8]}_{safe}"
+
+
+def make_template_blob_path(company_id_or_global: str, filename: str) -> str:
+    """Blobs para archivos de ejemplo de plantillas."""
+    safe = os.path.basename(filename).replace("\\", "_")
+    return f"templates/{company_id_or_global}/{uuid.uuid4().hex[:8]}_{safe}"

@@ -25,6 +25,7 @@ export default function RequisitosPage() {
   const [tipoFilter, setTipoFilter] = useState("todos");
   const [ambitoFilter, setAmbitoFilter] = useState("todos");
   const [estadoFilter, setEstadoFilter] = useState("todos");
+  const [sortFilter, setSortFilter] = useState("ambito");
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -36,6 +37,11 @@ export default function RequisitosPage() {
   const [nuevoTipo, setNuevoTipo] = useState<TipoRequisito>("legal");
   const [nuevoAmbito, setNuevoAmbito] = useState<Ambito>("personal");
   const [nuevoObligatorio, setNuevoObligatorio] = useState(true);
+  const [nuevoArchivoEjemplo, setNuevoArchivoEjemplo] = useState<File | null>(null);
+  const [nuevoCodigo, setNuevoCodigo] = useState("");
+  const [nuevoVigencia, setNuevoVigencia] = useState("");
+  const [nuevoPlataforma, setNuevoPlataforma] = useState("");
+  const [nuevoAplicaA, setNuevoAplicaA] = useState("");
 
   // Edición
   const [editingReq, setEditingReq] = useState<RequisitoFilaExt | null>(null);
@@ -43,6 +49,12 @@ export default function RequisitosPage() {
   const [editTipo, setEditTipo] = useState<TipoRequisito>("legal");
   const [editAmbito, setEditAmbito] = useState<Ambito>("personal");
   const [editObligatorio, setEditObligatorio] = useState(true);
+  const [editArchivoEjemplo, setEditArchivoEjemplo] = useState<File | null>(null);
+  const [editArchivoEjemploRuta, setEditArchivoEjemploRuta] = useState<string | null>(null);
+  const [editCodigo, setEditCodigo] = useState("");
+  const [editVigencia, setEditVigencia] = useState("");
+  const [editPlataforma, setEditPlataforma] = useState("");
+  const [editAplicaA, setEditAplicaA] = useState("");
 
   const fetchRequisitos = async () => {
     setLoading(true);
@@ -56,6 +68,7 @@ export default function RequisitosPage() {
       if (tipoFilter !== "todos") params.tipo = tipoFilter;
       if (ambitoFilter !== "todos") params.ambito = ambitoFilter;
       if (estadoFilter !== "todos") params.estado = estadoFilter;
+      if (sortFilter) params.sort = sortFilter;
 
       const res = await Api.requisitos.listar(params);
       setRequisitosList(res.items || []);
@@ -77,7 +90,7 @@ export default function RequisitosPage() {
 
   useEffect(() => {
     fetchRequisitos();
-  }, [search, tipoFilter, ambitoFilter, estadoFilter, pageSize, currentPage]);
+  }, [search, tipoFilter, ambitoFilter, estadoFilter, sortFilter, pageSize, currentPage]);
 
   // Cálculos KPI
   const kpiTotal = kpis?.total ?? totalCount ?? 0;
@@ -160,15 +173,52 @@ export default function RequisitosPage() {
     return `REQ-${num}`;
   };
 
+  const uploadEjemplo = async (file: File): Promise<string> => {
+    // 1. Obtener SAS
+    const res = await fetch(`${Api.getBaseUrl()}/api/v1/requisitos/templates/upload-url`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${localStorage.getItem("token") || ""}`,
+      },
+      body: JSON.stringify({
+        filename: file.name,
+        size_bytes: file.size,
+        content_type: file.type,
+      })
+    });
+    if (!res.ok) throw new Error("No se pudo obtener URL de subida");
+    const { upload_url, blob_path, headers } = await res.json();
+
+    // 2. Subir archivo
+    const putRes = await fetch(upload_url, {
+      method: "PUT",
+      headers: { ...headers, "Content-Type": file.type },
+      body: file
+    });
+    if (!putRes.ok) throw new Error("No se pudo subir el archivo");
+    return blob_path;
+  };
+
   const handleCrearRequisito = async () => {
     if (!nuevoTitulo.trim()) return;
     try {
+      let archivo_ejemplo;
+      if (nuevoArchivoEjemplo) {
+        archivo_ejemplo = await uploadEjemplo(nuevoArchivoEjemplo);
+      }
+
       if (Api.requisitos.crearPlantilla) {
         await Api.requisitos.crearPlantilla({
           titulo: nuevoTitulo.trim(),
           tipo: nuevoTipo,
           ambito: nuevoAmbito,
           obligatorio: nuevoObligatorio,
+          archivo_ejemplo,
+          codigo: nuevoCodigo.trim() || undefined,
+          vigencia_meses: nuevoVigencia ? parseInt(nuevoVigencia, 10) : undefined,
+          plataforma: nuevoPlataforma.trim() || undefined,
+          aplica_a: nuevoAplicaA.trim() || undefined,
         });
       } else {
         await Api.admin.crearPlantilla({
@@ -176,10 +226,20 @@ export default function RequisitosPage() {
           tipo: nuevoTipo,
           ambito: nuevoAmbito,
           obligatorio: nuevoObligatorio,
+          archivo_ejemplo,
+          codigo: nuevoCodigo.trim() || undefined,
+          vigencia_meses: nuevoVigencia ? parseInt(nuevoVigencia, 10) : undefined,
+          plataforma: nuevoPlataforma.trim() || undefined,
+          aplica_a: nuevoAplicaA.trim() || undefined,
         });
       }
       setShowNuevoModal(false);
       setNuevoTitulo("");
+      setNuevoArchivoEjemplo(null);
+      setNuevoCodigo("");
+      setNuevoVigencia("");
+      setNuevoPlataforma("");
+      setNuevoAplicaA("");
       fetchRequisitos();
       if (typeof window !== "undefined" && (window as any).toast) {
         (window as any).toast("Requisito creado exitosamente para tu empresa");
@@ -195,17 +255,33 @@ export default function RequisitosPage() {
     setEditTipo((r.tipo as TipoRequisito) || "legal");
     setEditAmbito(r.ambito);
     setEditObligatorio(r.obligatorio);
+    setEditArchivoEjemplo(null);
+    setEditArchivoEjemploRuta(r.archivo_ejemplo || null);
+    setEditCodigo(r.codigo || "");
+    setEditVigencia(r.vigencia_meses ? String(r.vigencia_meses) : "");
+    setEditPlataforma(r.plataforma || "");
+    setEditAplicaA(r.aplica_a || "");
   };
 
   const handleEditarRequisito = async () => {
     if (!editingReq || !editTitulo.trim()) return;
     try {
+      let archivo_ejemplo = editArchivoEjemploRuta;
+      if (editArchivoEjemplo) {
+        archivo_ejemplo = await uploadEjemplo(editArchivoEjemplo);
+      }
+
       if (Api.requisitos.editarPlantilla) {
         await Api.requisitos.editarPlantilla(editingReq.template_id, {
           titulo: editTitulo.trim(),
           tipo: editTipo,
           ambito: editAmbito,
           obligatorio: editObligatorio,
+          archivo_ejemplo: archivo_ejemplo || undefined,
+          codigo: editCodigo.trim() || undefined,
+          vigencia_meses: editVigencia ? parseInt(editVigencia, 10) : undefined,
+          plataforma: editPlataforma.trim() || undefined,
+          aplica_a: editAplicaA.trim() || undefined,
         });
       } else {
         await Api.admin.editarPlantilla(editingReq.template_id, {
@@ -213,6 +289,11 @@ export default function RequisitosPage() {
           tipo: editTipo,
           ambito: editAmbito,
           obligatorio: editObligatorio,
+          archivo_ejemplo: archivo_ejemplo || undefined,
+          codigo: editCodigo.trim() || undefined,
+          vigencia_meses: editVigencia ? parseInt(editVigencia, 10) : undefined,
+          plataforma: editPlataforma.trim() || undefined,
+          aplica_a: editAplicaA.trim() || undefined,
         });
       }
       setEditingReq(null);
@@ -423,6 +504,22 @@ export default function RequisitosPage() {
           <option value="venc">Vencido</option>
           <option value="falta">Inactivo / Pendiente</option>
         </select>
+
+        {/* Orden */}
+        <select
+          value={sortFilter}
+          onChange={(e) => {
+            setSortFilter(e.target.value);
+            setCurrentPage(1);
+          }}
+          className="px-3 py-2 text-xs border border-slate-200 rounded-lg bg-slate-50 font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 ml-auto"
+        >
+          <option value="ambito">Ordenar: Por defecto</option>
+          <option value="-created_at">Más recientes primero</option>
+          <option value="created_at">Más antiguos primero</option>
+          <option value="titulo">Nombre (A-Z)</option>
+          <option value="-titulo">Nombre (Z-A)</option>
+        </select>
       </div>
 
       {/* 4. Tabla Principal de Requisitos */}
@@ -625,10 +722,18 @@ export default function RequisitosPage() {
                 <span className="font-medium text-slate-400">Por vencer:</span>
                 <span className="font-bold text-amber-600">{selectedReq.porvenc || 0}</span>
               </div>
-              <div className="flex justify-between py-1">
+              <div className="flex justify-between py-1 border-b border-slate-50">
                 <span className="font-medium text-slate-400">Vencidos:</span>
                 <span className="font-bold text-red-600">{selectedReq.venc || 0}</span>
               </div>
+              {selectedReq.archivo_ejemplo && (
+                <div className="flex justify-between py-1">
+                  <span className="font-medium text-slate-400">Archivo de Ejemplo:</span>
+                  <a href={`${Api.getBaseUrl()}/api/v1/blobs/download?blob_path=${encodeURIComponent(selectedReq.archivo_ejemplo)}`} target="_blank" rel="noreferrer" className="text-blue-600 font-bold hover:underline">
+                    Ver Archivo
+                  </a>
+                </div>
+              )}
             </div>
 
             <div className="pt-2 text-right">
@@ -698,6 +803,52 @@ export default function RequisitosPage() {
                 </select>
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Código (Opcional)</label>
+                  <input
+                    type="text"
+                    value={nuevoCodigo}
+                    onChange={(e) => setNuevoCodigo(e.target.value)}
+                    placeholder="Ej: R-01"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Vigencia (Meses)</label>
+                  <input
+                    type="number"
+                    value={nuevoVigencia}
+                    onChange={(e) => setNuevoVigencia(e.target.value)}
+                    placeholder="Ej: 12"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Plataforma (Opcional)</label>
+                  <input
+                    type="text"
+                    value={nuevoPlataforma}
+                    onChange={(e) => setNuevoPlataforma(e.target.value)}
+                    placeholder="Ej: Autocontrol"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Aplica A (Opcional)</label>
+                  <input
+                    type="text"
+                    value={nuevoAplicaA}
+                    onChange={(e) => setNuevoAplicaA(e.target.value)}
+                    placeholder="Ej: Conductores"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+              </div>
+
               <div className="flex items-center gap-2 pt-1">
                 <input
                   type="checkbox"
@@ -709,6 +860,15 @@ export default function RequisitosPage() {
                 <label htmlFor="oblig" className="font-semibold text-slate-700">
                   Obligatorio para la acreditación
                 </label>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Archivo de Ejemplo (Opcional)</label>
+                <input
+                  type="file"
+                  onChange={(e) => setNuevoArchivoEjemplo(e.target.files?.[0] || null)}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                />
               </div>
             </div>
 
@@ -784,6 +944,52 @@ export default function RequisitosPage() {
                 </select>
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Código (Opcional)</label>
+                  <input
+                    type="text"
+                    value={editCodigo}
+                    onChange={(e) => setEditCodigo(e.target.value)}
+                    placeholder="Ej: R-01"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Vigencia (Meses)</label>
+                  <input
+                    type="number"
+                    value={editVigencia}
+                    onChange={(e) => setEditVigencia(e.target.value)}
+                    placeholder="Ej: 12"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Plataforma (Opcional)</label>
+                  <input
+                    type="text"
+                    value={editPlataforma}
+                    onChange={(e) => setEditPlataforma(e.target.value)}
+                    placeholder="Ej: Autocontrol"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Aplica A (Opcional)</label>
+                  <input
+                    type="text"
+                    value={editAplicaA}
+                    onChange={(e) => setEditAplicaA(e.target.value)}
+                    placeholder="Ej: Conductores"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+              </div>
+
               <div className="flex items-center gap-2 pt-1">
                 <input
                   type="checkbox"
@@ -795,6 +1001,20 @@ export default function RequisitosPage() {
                 <label htmlFor="editOblig" className="font-semibold text-slate-700">
                   Obligatorio para la acreditación
                 </label>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Archivo de Ejemplo (Opcional)</label>
+                <input
+                  type="file"
+                  onChange={(e) => setEditArchivoEjemplo(e.target.files?.[0] || null)}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                />
+                {editArchivoEjemploRuta && !editArchivoEjemplo && (
+                  <div className="mt-1 text-xs text-slate-500">
+                    Archivo actual: <a href={`${Api.getBaseUrl()}/api/v1/blobs/download?blob_path=${encodeURIComponent(editArchivoEjemploRuta)}`} target="_blank" rel="noreferrer" className="text-blue-600 underline">Descargar</a>
+                  </div>
+                )}
               </div>
             </div>
 
