@@ -54,5 +54,5 @@ properties:
         cpu: 0.5
         memory: 1Gi
     scale:
-      minReplicas: 0
+      minReplicas: 1
       maxReplicas: 2
