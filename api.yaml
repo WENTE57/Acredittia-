@@ -24,6 +24,8 @@ properties:
         secretRef: db-url
       - name: SCHEMA_DIR
         value: /schema
+      - name: SCHEMA_VERSION_ESPERADA
+        value: "6"
       - name: DB_RLS_ENABLED
         value: "true"
       - name: JWT_SECRET
