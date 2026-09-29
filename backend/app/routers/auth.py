@@ -224,6 +224,13 @@ def login(body: LoginIn):
         }
 
 
+from fastapi.security import OAuth2PasswordRequestForm
+@router.post("/token", include_in_schema=False)
+def login_swagger(form_data: OAuth2PasswordRequestForm = Depends()):
+    """Endpoint exclusivo para que funcione el botón Authorize de Swagger."""
+    return login(LoginIn(email=form_data.username, password=form_data.password))
+
+
 @router.post("/refresh")
 def refresh(body: RefreshIn):
     """Rota el refresh token. Sin tenant en contexto: ver `login`."""

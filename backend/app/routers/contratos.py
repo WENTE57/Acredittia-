@@ -303,6 +303,48 @@ def eliminar(contrato_id: uuid.UUID, confirm: bool = Query(False),
 # ============================================================================
 # §8.2 — Vistas del contrato
 # ============================================================================
+@router.get("/{contrato_id}/resumen")
+def resumen_contrato(contrato_id: uuid.UUID, db: Session = Depends(get_db),
+                     cid: uuid.UUID = Depends(get_company_id),
+                     user: User = Depends(get_current_user)):
+    """Vista enriquecida de contrato como carpeta: incluye plataformas y requisitos por ámbito."""
+    from ..models import ContratoPlataforma, ContratoRequisito
+
+    c = _get_contrato(db, cid, contrato_id, user)
+    out = _out(db, c, con_stats=True)
+
+    plataformas = list(db.scalars(
+        select(ContratoPlataforma).where(
+            ContratoPlataforma.company_id == cid,
+            ContratoPlataforma.contrato_id == c.id
+        ).order_by(ContratoPlataforma.orden)
+    ))
+    out["plataformas"] = [
+        {
+            "id": str(p.id),
+            "nombre": p.nombre,
+            "descripcion": p.descripcion,
+            "url": p.url,
+            "color": p.color,
+            "estado": p.estado,
+            "es_custom": p.es_custom
+        } for p in plataformas
+    ]
+
+    reqs = list(db.execute(
+        select(ContratoRequisito.ambito, func.count())
+        .where(
+            ContratoRequisito.company_id == cid,
+            ContratoRequisito.contrato_id == c.id,
+            ContratoRequisito.activo == True
+        )
+        .group_by(ContratoRequisito.ambito)
+    ))
+    out["requisitos_resumen"] = {r[0]: r[1] for r in reqs}
+
+    return out
+
+
 @router.get("/{contrato_id}/documentos")
 def docs_empresa(contrato_id: uuid.UUID, p: Page = Depends(paginacion),
                  db: Session = Depends(get_db),
@@ -339,6 +381,114 @@ def personal_contrato(contrato_id: uuid.UUID,
     return listar_sujetos(db, cid, "trabajador", p, contrato_id=c.id,
                           estado=estado, cargo_id=cargo_id, cargo=cargo,
                           es_conductor=es_conductor)
+
+
+class ImportarPersonalIn(BaseModel):
+    sujetos_ids: list[uuid.UUID]
+
+
+@router.post("/{contrato_id}/personal/importar")
+def importar_personal(contrato_id: uuid.UUID, body: ImportarPersonalIn,
+                      db: Session = Depends(get_db),
+                      cid: uuid.UUID = Depends(get_company_id),
+                      user: User = Depends(get_current_user)):
+    """Importa personal desde nómina u otro contrato copiando el sujeto."""
+    from ..services.checklist import instanciar_docs
+    
+    c = _get_contrato(db, cid, contrato_id, user)
+    
+    sujetos = db.scalars(select(Sujeto).where(
+        Sujeto.company_id == cid,
+        Sujeto.id.in_(body.sujetos_ids),
+        Sujeto.tipo == "trabajador"
+    )).all()
+    
+    importados = 0
+    docs_creados = 0
+    for s_old in sujetos:
+        existe = db.scalar(select(Sujeto.id).where(
+            Sujeto.company_id == cid,
+            Sujeto.contrato_id == c.id,
+            Sujeto.rut == s_old.rut,
+            Sujeto.estado != "baja"
+        ))
+        if existe:
+            continue
+            
+        s_new = Sujeto(
+            company_id=cid,
+            contrato_id=c.id,
+            tipo="trabajador",
+            estado="proc",
+            nombre=s_old.nombre,
+            rut=s_old.rut,
+            cargo=s_old.cargo,
+            cargo_id=s_old.cargo_id,
+            es_conductor=s_old.es_conductor
+        )
+        db.add(s_new)
+        db.flush()
+        
+        n = instanciar_docs(db, cid, "personal", sujeto_id=s_new.id,
+                            faena_id=c.faena_id, cargo_id=s_new.cargo_id,
+                            contrato_plantilla_id=c.id)
+        docs_creados += n
+        importados += 1
+        
+    actividad.log(db, cid, "creacion", "personal",
+                  f"Importados {importados} trabajadores al contrato '{c.nombre}'",
+                  user_id=user.id, entidad_tipo="contrato", entidad_id=c.id)
+    db.commit()
+    return {"importados": importados, "documentos_creados": docs_creados}
+
+
+@router.get("/{contrato_id}/personal/{sujeto_id}/docs-reutilizables")
+def docs_reutilizables(contrato_id: uuid.UUID, sujeto_id: uuid.UUID,
+                       db: Session = Depends(get_db),
+                       cid: uuid.UUID = Depends(get_company_id),
+                       user: User = Depends(get_current_user)):
+    """Busca documentos vigentes del mismo trabajador en otros contratos."""
+    c = _get_contrato(db, cid, contrato_id, user)
+    s_actual = db.get(Sujeto, sujeto_id)
+    if not s_actual or s_actual.contrato_id != c.id or s_actual.company_id != cid:
+        raise err(404, "NO_ENCONTRADO", "Trabajador no pertenece a este contrato")
+
+    docs_actuales = list(db.scalars(
+        select(Documento).where(Documento.sujeto_id == s_actual.id)
+    ))
+    
+    reqs_necesitados = {d.template_id: d for d in docs_actuales if d.estado_calc != "ok" and d.template_id}
+    if not reqs_necesitados:
+        return {"reutilizables": []}
+
+    otros_sujetos = select(Sujeto.id).where(
+        Sujeto.company_id == cid,
+        Sujeto.rut == s_actual.rut,
+        Sujeto.id != s_actual.id
+    )
+
+    reutilizables = list(db.scalars(
+        select(Documento).where(
+            Documento.sujeto_id.in_(otros_sujetos),
+            Documento.estado_calc == "ok",
+            Documento.template_id.in_(list(reqs_necesitados.keys()))
+        )
+    ))
+
+    from .documentos import doc_out
+    out_docs = []
+    vistos = set()
+    for d in reutilizables:
+        if d.template_id in vistos:
+            continue
+        vistos.add(d.template_id)
+        
+        doc_dest = reqs_necesitados[d.template_id]
+        item = doc_out(d)
+        item["documento_destino_id"] = str(doc_dest.id)
+        out_docs.append(item)
+
+    return {"reutilizables": out_docs}
 
 
 @router.get("/{contrato_id}/equipos")
