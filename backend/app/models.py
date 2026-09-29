@@ -244,7 +244,7 @@ class Sujeto(Base):
     __tablename__ = "sujetos"
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=_uuid)
     company_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("companies.id"))
-    contrato_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("contratos.id"))
+    contrato_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("contratos.id"))
     tipo: Mapped[str] = mapped_column(pg_enum('subject_type'))
     estado: Mapped[str] = mapped_column(pg_enum('subject_status'), default="proc")
     nombre: Mapped[str] = mapped_column(Text)

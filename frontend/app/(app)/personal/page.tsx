@@ -9,21 +9,101 @@ export default function PersonasPage() {
   const [loading, setLoading] = useState(true);
   const [personalList, setPersonalList] = useState<Sujeto[]>([]);
   const [search, setSearch] = useState("");
+  
+  // Modals state
+  const [showModal, setShowModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // Form state
+  const [nombre, setNombre] = useState("");
+  const [rut, setRut] = useState("");
+  const [cargo, setCargo] = useState("");
+  const [estado, setEstado] = useState("proc"); // proc = Pendiente, ok = Activo, baja = Inactivo
 
   useEffect(() => {
-    async function fetchPersonal() {
-      setLoading(true);
-      try {
-        const res = await Api.personal.listar({ page_size: 50 });
-        setPersonalList(res.items || []);
-      } catch (err) {
-        console.error("Error al cargar personal:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
     fetchPersonal();
   }, []);
+
+  async function fetchPersonal() {
+    setLoading(true);
+    try {
+      const res = await Api.personal.listar({ page_size: 100 });
+      setPersonalList(res.items || []);
+    } catch (err) {
+      console.error("Error al cargar personal:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleOpenNuevo = () => {
+    setIsEditing(false);
+    setEditingId(null);
+    setNombre("");
+    setRut("");
+    setCargo("");
+    setEstado("proc"); // Pendiente por defecto
+    setShowModal(true);
+  };
+
+  const handleOpenEditar = (p: Sujeto) => {
+    setIsEditing(true);
+    setEditingId(p.id);
+    setNombre(p.nombre || "");
+    setRut(p.rut || "");
+    setCargo(p.cargo || "");
+    setEstado(p.estado || "proc");
+    setShowModal(true);
+  };
+
+  const handleGuardar = async () => {
+    if (!nombre || !rut) return alert("Nombre y RUT son requeridos");
+
+    setSaving(true);
+    try {
+      if (isEditing && editingId) {
+        await Api.personal.editar(editingId, {
+          nombre,
+          cargo: cargo || null,
+          estado
+        });
+      } else {
+        await Api.personal.crear({
+          contrato_id: null,
+          nombre,
+          rut,
+          cargo: cargo || null,
+          estado
+        });
+      }
+      setShowModal(false);
+      fetchPersonal(); // Refresh
+      if (typeof window !== "undefined" && (window as any).toast) {
+        (window as any).toast(isEditing ? "Trabajador actualizado" : "Trabajador creado exitosamente");
+      }
+    } catch (error: any) {
+      console.error(error);
+      alert(error.message || "Ocurrió un error al guardar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEliminar = async (p: Sujeto) => {
+    if (confirm(`¿Estás seguro de que deseas eliminar a ${p.nombre}?`)) {
+      try {
+        await Api.personal.eliminar(p.id);
+        fetchPersonal();
+        if (typeof window !== "undefined" && (window as any).toast) {
+          (window as any).toast("Trabajador eliminado exitosamente");
+        }
+      } catch (error: any) {
+        alert(error.message || "Error al eliminar");
+      }
+    }
+  };
 
   const filtered = personalList.filter((p) => {
     if (!search) return true;
@@ -54,7 +134,7 @@ export default function PersonasPage() {
           <button className="px-3.5 py-2 text-xs font-semibold border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50">
             ↓ Exportar
           </button>
-          <button className="px-3.5 py-2 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+          <button onClick={handleOpenNuevo} className="px-3.5 py-2 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
             + Agregar personal
           </button>
         </div>
@@ -113,7 +193,7 @@ export default function PersonasPage() {
             <h4 className="font-bold text-sm">Sin datos de personal en la base de datos</h4>
             <p className="text-xs text-amber-800 leading-relaxed">
               No se encontraron trabajadores registrados actualmente en la base de datos.
-              Los datos estáticos de demostración fueron removidos. Puedes hacer clic en <b>"+ Agregar personal"</b> para registrar trabajadores.
+              Puedes hacer clic en <b>"+ Agregar personal"</b> para registrar trabajadores.
             </p>
           </div>
         </div>
@@ -152,7 +232,7 @@ export default function PersonasPage() {
             ) : filtered.length === 0 ? (
               <tr>
                 <td colSpan={5} className="p-8 text-center text-slate-400">
-                  No se encontraron trabajadores registrados en la base de datos.
+                  No se encontraron trabajadores registrados.
                 </td>
               </tr>
             ) : (
@@ -174,9 +254,15 @@ export default function PersonasPage() {
                       {p.estado === "ok" ? "Acreditado" : p.estado === "proc" ? "En proceso" : "Pendiente/Vencido"}
                     </span>
                   </td>
-                  <td className="p-3.5 text-right">
-                    <Link href={`/personal/${p.id}`} className="text-blue-600 hover:underline font-medium">
-                      Ver ficha
+                  <td className="p-3.5 text-right flex items-center justify-end gap-2">
+                    <button onClick={() => handleOpenEditar(p)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" title="Editar">
+                      ✏️
+                    </button>
+                    <button onClick={() => handleEliminar(p)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Eliminar">
+                      🗑️
+                    </button>
+                    <Link href={`/personal/${p.id}`} className="text-blue-600 hover:underline font-medium text-[10px] ml-2 border-l border-slate-200 pl-2">
+                      Ver ficha →
                     </Link>
                   </td>
                 </tr>
@@ -185,6 +271,80 @@ export default function PersonasPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-200">
+            <h2 className="text-lg font-bold text-slate-800 mb-4">{isEditing ? "Editar Trabajador" : "Agregar Trabajador"}</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre Completo</label>
+                <input 
+                  type="text" 
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  placeholder="Ej: Juan Pérez"
+                  className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">RUT</label>
+                <input 
+                  type="text" 
+                  value={rut}
+                  onChange={(e) => setRut(e.target.value)}
+                  disabled={isEditing}
+                  placeholder="Ej: 12.345.678-9"
+                  className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Cargo (Opcional)</label>
+                <input 
+                  type="text" 
+                  value={cargo}
+                  onChange={(e) => setCargo(e.target.value)}
+                  placeholder="Ej: Conductor, Operador, etc."
+                  className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Estado</label>
+                <select 
+                  value={estado}
+                  onChange={(e) => setEstado(e.target.value)}
+                  className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="proc">Pendiente</option>
+                  <option value="ok">Activo (Acreditado)</option>
+                  <option value="baja">Inactivo</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
+              <button 
+                onClick={() => setShowModal(false)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors border border-transparent"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={handleGuardar}
+                disabled={saving}
+                className="px-4 py-2 text-xs font-semibold bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg transition-colors"
+              >
+                {saving ? "Guardando..." : "Guardar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -506,7 +506,7 @@ export type ChecklistSujeto = {
 };
 
 export type TrabajadorIn = {
-  contrato_id: string;
+  contrato_id?: string | null;
   nombre: string;
   rut: string;
   /** Recomendado. 400 `CARGO_INEXISTENTE` si no es de la empresa. */
@@ -514,6 +514,7 @@ export type TrabajadorIn = {
   /** Texto libre: el backend resuelve o crea el cargo (`cargo_creado`). */
   cargo?: string | null;
   es_conductor?: boolean;
+  estado?: string | null;
 };
 
 /** `PATCH /personal/{id}`: solo estos campos (§5 de RUPTURAS). */
@@ -522,6 +523,7 @@ export type TrabajadorPatch = {
   cargo_id?: string | null;
   cargo?: string | null;
   es_conductor?: boolean;
+  estado?: string | null;
 };
 
 export type EquipoIn = {
