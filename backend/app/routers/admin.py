@@ -30,6 +30,8 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..deps import (Page, aplicar_orden, err, paginacion, require_admin, sobre)
+from ..services.storage import get_storage, make_template_blob_path
+import mimetypes
 from ..models import (
     Alerta, Company, CompanyFaenaPlataforma, Contrato, ContratoPlantillaOverride,
     ContratoPlataforma, ContratoRequisito, CumplimientoSnapshot, DocEjemplo,
@@ -110,6 +112,7 @@ class TemplateIn(BaseModel):
     tipo: str | None = None
     obligatorio: bool = True
     ejemplo_clave: str | None = None
+    archivo_ejemplo: str | None = None
     faena_id: uuid.UUID | None = None
     vigencia_meses: int | None = None
     plataforma: str | None = None
@@ -124,6 +127,7 @@ class TemplatePatch(BaseModel):
     tipo: str | None = None
     obligatorio: bool | None = None
     ejemplo_clave: str | None = None
+    archivo_ejemplo: str | None = None
     faena_id: uuid.UUID | None = None
     vigencia_meses: int | None = None
     plataforma: str | None = None
@@ -242,7 +246,7 @@ def _template_out(t: RequisitoTemplate) -> dict:
     return {
         "id": str(t.id), "ambito": t.ambito, "titulo": t.titulo,
         "codigo": t.codigo, "tipo": t.tipo, "obligatorio": t.obligatorio,
-        "ejemplo_clave": t.ejemplo_clave,
+        "ejemplo_clave": t.ejemplo_clave, "archivo_ejemplo": t.archivo_ejemplo,
         "faena_id": str(t.faena_id) if t.faena_id else None,
         "es_estandar": t.faena_id is None,
         "vigencia_meses": t.vigencia_meses, "plataforma": t.plataforma,
@@ -476,6 +480,36 @@ def listar_templates(ambito: str | None = Query(None),
     q = aplicar_orden(q, RequisitoTemplate, p.sort, ORDEN_TEMPLATES, "titulo")
     filas = list(db.scalars(q.offset(p.offset).limit(p.page_size)))
     return sobre([_template_out(t) for t in filas], total, p)
+
+
+class TemplateUploadUrlIn(BaseModel):
+    filename: str
+    content_type: str | None = None
+    size_bytes: int | None = None
+
+
+@router.post("/requisitos/templates/upload-url")
+def upload_url_template_admin(body: TemplateUploadUrlIn,
+                              admin: User = Depends(require_admin)):
+    """SAS para subir un archivo de ejemplo de un requisito (global)."""
+    from ..config import settings
+    from .documentos import _valida_extension
+    _valida_extension(body.filename)
+    maximo = settings.max_upload_mb * 1024 * 1024
+    if body.size_bytes is not None and body.size_bytes > maximo:
+        raise err(400, "ARCHIVO_DEMASIADO_GRANDE",
+                  f"El tamaño máximo es {settings.max_upload_mb} MB")
+
+    blob_path = make_template_blob_path("global", body.filename)
+    content_type = (body.content_type
+                    or mimetypes.guess_type(body.filename)[0]
+                    or "application/octet-stream")
+    sas = get_storage().upload_url(blob_path, content_type)
+    return {
+        "upload_url": sas.upload_url, "blob_path": sas.blob_path,
+        "expires_at": sas.expires_at.isoformat(), "headers": sas.headers,
+        "method": "PUT", "max_bytes": maximo,
+    }
 
 
 @router.post("/requisitos/templates", status_code=201)

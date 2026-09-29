@@ -27,6 +27,8 @@ from sqlalchemy.orm import Session
 from ..deps import (Page, aplicar_orden, contrato_scope, err, get_company_id,
                     get_current_user, get_db, paginacion, sobre)
 from ..models import Contrato, Documento, RequisitoTemplate, Sujeto, User
+from ..services.storage import get_storage, make_template_blob_path
+import mimetypes
 
 logger = logging.getLogger("acredittia.requisitos")
 
@@ -42,7 +44,7 @@ ESTADOS: tuple[str, ...] = ("ok", "porvenc", "venc", "falta")
 ORDEN_CATALOGO: dict[str, str] = {
     "titulo": "titulo", "codigo": "codigo", "ambito": "ambito",
     "tipo": "tipo", "docs": "docs", "estado": "estado",
-    "vigencia_meses": "vigencia_meses",
+    "vigencia_meses": "vigencia_meses", "created_at": "created_at",
 }
 ORDEN_TEMPLATES = {"titulo", "codigo", "ambito", "tipo", "vigencia_meses",
                    "created_at", "updated_at"}
@@ -130,9 +132,11 @@ def _fila_out(t: RequisitoTemplate, c: dict) -> dict:
         "tipo": t.tipo, "ambito": t.ambito, "obligatorio": t.obligatorio,
         "vigencia_meses": t.vigencia_meses, "plataforma": t.plataforma,
         "aplica_a": t.aplica_a, "ejemplo_clave": t.ejemplo_clave,
+        "archivo_ejemplo": t.archivo_ejemplo,
         "docs": c["docs"], "ok": c["ok"], "porvenc": c["porvenc"],
         "venc": c["venc"], "falta": c["falta"],
         "estado": _estado_agregado(c),
+        "created_at": t.created_at.isoformat() if t.created_at else None,
     }
 
 
@@ -144,6 +148,7 @@ def _template_out(t: RequisitoTemplate) -> dict:
         "tipo": t.tipo, "ambito": t.ambito, "obligatorio": t.obligatorio,
         "vigencia_meses": t.vigencia_meses, "plataforma": t.plataforma,
         "aplica_a": t.aplica_a, "ejemplo_clave": t.ejemplo_clave,
+        "archivo_ejemplo": t.archivo_ejemplo,
         "faena_id": str(t.faena_id) if t.faena_id else None,
         "es_estandar": t.faena_id is None,
         "activo": t.activo,
@@ -240,13 +245,22 @@ def listar(ambito: str | None = Query(None),
     conteos = _conteos_por_template(db, cid, [t.id for t in plantillas], scope)
     vacio = {"docs": 0, "ok": 0, "porvenc": 0, "venc": 0, "falta": 0}
     items = [_fila_out(t, conteos.get(t.id, dict(vacio))) for t in plantillas]
+    
+    # Calcular KPIs basados en el catálogo (plantillas), no en documentos
+    kpis = {
+        "total": len(items),
+        "activos": sum(1 for i in items if i["estado"] == "ok"),
+        "por_vencer_30d": sum(1 for i in items if i["estado"] == "porvenc"),
+        "vencidos": sum(1 for i in items if i["estado"] == "venc"),
+    }
+
     if estado:
         items = [i for i in items if i["estado"] == estado]
 
     items = _ordenar(items, p.sort)
     total = len(items)
     salida = sobre(items[p.offset:p.offset + p.page_size], total, p)
-    salida["kpis"] = _kpis(db, cid, scope)
+    salida["kpis"] = kpis
     return salida
 
 
@@ -284,6 +298,7 @@ class TemplateIn(BaseModel):
     tipo: str | None = None
     obligatorio: bool = True
     ejemplo_clave: str | None = None
+    archivo_ejemplo: str | None = None
     faena_id: uuid.UUID | None = None
     vigencia_meses: int | None = None
     plataforma: str | None = None
@@ -298,11 +313,43 @@ class TemplatePatch(BaseModel):
     tipo: str | None = None
     obligatorio: bool | None = None
     ejemplo_clave: str | None = None
+    archivo_ejemplo: str | None = None
     faena_id: uuid.UUID | None = None
     vigencia_meses: int | None = None
     plataforma: str | None = None
     aplica_a: str | None = None
     activo: bool | None = None
+
+
+class TemplateUploadUrlIn(BaseModel):
+    filename: str
+    content_type: str | None = None
+    size_bytes: int | None = None
+
+
+@router.post("/templates/upload-url")
+def upload_url_template(body: TemplateUploadUrlIn,
+                        cid: uuid.UUID = Depends(get_company_id),
+                        user: User = Depends(get_current_user)):
+    """SAS para subir un archivo de ejemplo de un requisito."""
+    from ..config import settings
+    from .documentos import _valida_extension
+    _valida_extension(body.filename)
+    maximo = settings.max_upload_mb * 1024 * 1024
+    if body.size_bytes is not None and body.size_bytes > maximo:
+        raise err(400, "ARCHIVO_DEMASIADO_GRANDE",
+                  f"El tamaño máximo es {settings.max_upload_mb} MB")
+
+    blob_path = make_template_blob_path(str(cid), body.filename)
+    content_type = (body.content_type
+                    or mimetypes.guess_type(body.filename)[0]
+                    or "application/octet-stream")
+    sas = get_storage().upload_url(blob_path, content_type)
+    return {
+        "upload_url": sas.upload_url, "blob_path": sas.blob_path,
+        "expires_at": sas.expires_at.isoformat(), "headers": sas.headers,
+        "method": "PUT", "max_bytes": maximo,
+    }
 
 
 @router.post("/templates")
@@ -321,6 +368,7 @@ def crear_template(data: TemplateIn,
         tipo=data.tipo,
         obligatorio=data.obligatorio,
         ejemplo_clave=data.ejemplo_clave,
+        archivo_ejemplo=data.archivo_ejemplo,
         faena_id=data.faena_id,
         vigencia_meses=data.vigencia_meses,
         plataforma=data.plataforma,
@@ -362,6 +410,8 @@ def editar_template(template_id: uuid.UUID,
         t.plataforma = data.plataforma
     if data.aplica_a is not None:
         t.aplica_a = data.aplica_a
+    if data.archivo_ejemplo is not None:
+        t.archivo_ejemplo = data.archivo_ejemplo
     if data.activo is not None:
         t.activo = data.activo
 
