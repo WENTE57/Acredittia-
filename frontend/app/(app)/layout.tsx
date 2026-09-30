@@ -72,6 +72,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         personal: "/personal",
         roster: "/personal",
         "docs-trabajadores": "/docs-trabajadores",
+        certificacion: "/certificacion-laboral",
+        "certificacion-laboral": "/certificacion-laboral",
         equipos_global: "/equipos",
         equipos: "/equipos",
         cargos: "/cargos",
