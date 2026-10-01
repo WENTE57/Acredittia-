@@ -158,10 +158,10 @@ def contratos_resumen(db: Session = Depends(get_db),
             "nombre": c.nombre,
             "faena": c.faena.nombre if c.faena else None,
             "estado": c.estado,
-            "cumplimiento_general_pct": st.get("cumplimiento_general_pct", 0),
-            "personal_ok": st.get("personal", {}).get("ok", 0),
+            "cumplimiento_general_pct": st.get("cumplimiento_pct", 0),
+            "personal_ok": st.get("personal", {}).get("acreditados", 0),
             "personal_total": st.get("personal", {}).get("total", 0),
-            "equipos_ok": st.get("equipos", {}).get("ok", 0),
+            "equipos_ok": st.get("equipos", {}).get("acreditados", 0),
             "equipos_total": st.get("equipos", {}).get("total", 0),
             "alertas_activas": alertas
         })
