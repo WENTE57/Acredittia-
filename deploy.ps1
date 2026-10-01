@@ -29,7 +29,7 @@ $content = [System.Text.RegularExpressions.Regex]::Replace($content, '\$\{([^}]+
 })
 
 $tempFile = "$YamlFile.tmp"
-Set-Content -Path $tempFile -Value $content -NoNewline
+[IO.File]::WriteAllText($tempFile, $content, [System.Text.Encoding]::UTF8)
 
 Write-Host "Desplegando en Azure Container Apps..."
 if ($YamlFile -like "cron-*" -or $YamlFile -like "migrate*") {
