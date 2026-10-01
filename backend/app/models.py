@@ -50,6 +50,10 @@ _ENUM_VALUES = {
     "alerta_origen": ("vencimiento", "ia", "integracion", "sistema"),
     "actividad_tipo": ("creacion", "actualizacion", "subida_documento", "asignacion",
                        "alerta_ia", "visualizacion", "comentario"),
+    "periodo_tipo": ("mensual", "quincenal", "otro"),
+    "periodo_estado": ("abierto", "en_revision", "cerrado"),
+    "periodo_doc_estado": ("pendiente", "cargado", "en_revision", "aprobado", "observado", "rechazado"),
+    "auditoria_accion": ("aprobar", "observar", "rechazar"),
 }
 
 
@@ -672,3 +676,55 @@ class Factura(Base):
     pdf_blob_path: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+
+# ============================================================================
+# Certificación Laboral
+# ============================================================================
+
+class PeriodoLaboral(Base):
+    __tablename__ = "periodos_laborales"
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    contrato_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("contratos.id"))
+    nombre: Mapped[str] = mapped_column(Text)
+    tipo: Mapped[str] = mapped_column(pg_enum('periodo_tipo'), default="mensual")
+    fecha_inicio: Mapped[date] = mapped_column(Date)
+    fecha_fin: Mapped[date] = mapped_column(Date)
+    estado: Mapped[str] = mapped_column(pg_enum('periodo_estado'), default="abierto")
+    porcentaje_cumplimiento: Mapped[float] = mapped_column(Numeric(5, 2), default=0.0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+
+class PeriodoDocumentoRequerido(Base):
+    __tablename__ = "periodo_documentos_requeridos"
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    periodo_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("periodos_laborales.id"))
+    requisito_template_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("requisito_templates.id"))
+    ambito: Mapped[str] = mapped_column(pg_enum('req_ambito'))
+    obligatorio: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class PeriodoDocumento(Base):
+    __tablename__ = "periodo_documentos"
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    periodo_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("periodos_laborales.id"))
+    sujeto_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("sujetos.id"))
+    requisito_template_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("requisito_templates.id"))
+    archivo_url: Mapped[str | None] = mapped_column(Text)
+    estado: Mapped[str] = mapped_column(pg_enum('periodo_doc_estado'), default="pendiente")
+    fecha_carga: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cargado_por: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+
+class AuditoriaDocumento(Base):
+    __tablename__ = "auditoria_documentos"
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    periodo_documento_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("periodo_documentos.id"))
+    auditor_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    accion: Mapped[str] = mapped_column(pg_enum('auditoria_accion'))
+    observacion: Mapped[str | None] = mapped_column(Text)
+    fecha: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    version: Mapped[int] = mapped_column(Integer, default=1)

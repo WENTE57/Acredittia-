@@ -23,7 +23,7 @@ from .database import (SessionLocal, apply_schema, assert_schema_version,
 from .routers import (actividad, admin, alertas, auth, blobs, calendario, cargos,
                       company, contrato_requisitos, contratos, dashboard,
                       documentos, faenas, ia, integraciones, licencia_interna,
-                      notificaciones, personas, plataformas, reportes,
+                      notificaciones, periodos_laborales, personas, plataformas, reportes,
                       requisitos, sujetos, suscripcion, webhooks)
 # Importar los módulos de tareas registra las entradas de TAREAS que usa la cola.
 from .services import integraciones as _svc_integraciones  # noqa: F401
@@ -136,6 +136,7 @@ app.include_router(requisitos.router, prefix=API)
 app.include_router(contratos.router, prefix=API)
 app.include_router(plataformas.router, prefix=API)
 app.include_router(contrato_requisitos.router, prefix=API)
+app.include_router(periodos_laborales.router, prefix=API)
 
 # --- Sujetos e identidad --------------------------------------------------
 app.include_router(sujetos.router, prefix=API)
