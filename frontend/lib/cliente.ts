@@ -381,7 +381,7 @@ export const plataformas = {
 
   eliminar: (contratoId: string, pid: string) =>
     api<{ ok: boolean; requisitos_eliminados: number; credenciales_eliminadas: number }>(
-      `/contratos/${contratoId}/plataformas/${pid}`, { method: "DELETE" }),
+      `/contratos/${contratoId}/plataformas/${pid}`, { method: "DELETE", query: { confirm: true } }),
 
   solicitarAcceso: (contratoId: string, pid: string, nota?: string) =>
     api<PlataformaContrato>(
@@ -759,96 +759,12 @@ export const suscripcion = {
 // §16 — Certificación Laboral (Dev 4)
 // ============================================================================
 export const certificacion = {
-  listarPeriodos: async (params?: ParamsPagina & { estado?: string; contrato_id?: string }) => {
-    try {
-      return await api<Pagina<PeriodoLaboral>>("/certificacion/periodos", { query: q(params) });
-    } catch {
-      // Fallback a datos mock si el backend aún no implementa el endpoint
-      const MOCK_PERIODOS: PeriodoLaboral[] = [
-        {
-          id: "per-sep-2026",
-          contrato_id: "lp1",
-          contrato_nombre: "Transporte y Operaciones MLP (Los Pelambres)",
-          nombre: "Período Septiembre 2026",
-          tipo: "mensual",
-          fecha_inicio: "2026-09-01",
-          fecha_fin: "2026-09-30",
-          estado: "en_revision",
-          porcentaje_cumplimiento: 82,
-          total_requeridos: 45,
-          total_aprobados: 37,
-          total_observados: 4,
-          total_pendientes: 4,
-          total_rechazados: 0,
-          created_at: "2026-09-01T08:00:00Z",
-        },
-        {
-          id: "per-ago-2026",
-          contrato_id: "lp1",
-          contrato_nombre: "Transporte y Operaciones MLP (Los Pelambres)",
-          nombre: "Período Agosto 2026",
-          tipo: "mensual",
-          fecha_inicio: "2026-08-01",
-          fecha_fin: "2026-08-31",
-          estado: "cerrado",
-          porcentaje_cumplimiento: 100,
-          total_requeridos: 45,
-          total_aprobados: 45,
-          total_observados: 0,
-          total_pendientes: 0,
-          total_rechazados: 0,
-          created_at: "2026-08-01T08:00:00Z",
-        },
-        {
-          id: "per-oct-2026",
-          contrato_id: "and1",
-          contrato_nombre: "Servicios Mina Andina (Andina)",
-          nombre: "Período Octubre 2026",
-          tipo: "mensual",
-          fecha_inicio: "2026-10-01",
-          fecha_fin: "2026-10-31",
-          estado: "abierto",
-          porcentaje_cumplimiento: 40,
-          total_requeridos: 30,
-          total_aprobados: 12,
-          total_observados: 3,
-          total_pendientes: 15,
-          total_rechazados: 0,
-          created_at: "2026-09-28T10:00:00Z",
-        },
-      ];
-
-      let filtrados = MOCK_PERIODOS;
-      if (params?.estado) {
-        filtrados = filtrados.filter((p) => p.estado === params.estado);
-      }
-      if (params?.contrato_id) {
-        filtrados = filtrados.filter((p) => p.contrato_id === params.contrato_id);
-      }
-      if (params?.search) {
-        const s = params.search.toLowerCase();
-        filtrados = filtrados.filter(
-          (p) => p.nombre.toLowerCase().includes(s) || (p.contrato_nombre ?? "").toLowerCase().includes(s)
-        );
-      }
-      return {
-        items: filtrados,
-        page: 1,
-        page_size: 20,
-        total: filtrados.length,
-        total_pages: 1,
-      } as Pagina<PeriodoLaboral>;
-    }
+  listarPeriodos: async (params?: ParamsPagina & { estado?: string; contrato_id?: string; search?: string }) => {
+    return await api<Pagina<PeriodoLaboral>>("/periodos", { query: q(params) });
   },
 
   obtenerPeriodo: async (id: string) => {
-    try {
-      return await api<PeriodoLaboral>(`/certificacion/periodos/${id}`);
-    } catch {
-      const list = await certificacion.listarPeriodos();
-      const p = list.items.find((item) => item.id === id) ?? list.items[0];
-      return p;
-    }
+    return await api<PeriodoLaboral>(`/periodos/${id}`);
   },
 
   crearPeriodo: async (body: {
@@ -858,192 +774,48 @@ export const certificacion = {
     fecha_inicio: string;
     fecha_fin: string;
   }) => {
-    try {
-      return await api<PeriodoLaboral>("/certificacion/periodos", { method: "POST", body });
-    } catch {
-      return {
-        id: `per-${Date.now()}`,
-        contrato_id: body.contrato_id,
-        contrato_nombre: "Contrato Seleccionado",
-        nombre: body.nombre,
-        tipo: body.tipo as any,
-        fecha_inicio: body.fecha_inicio,
-        fecha_fin: body.fecha_fin,
-        estado: "abierto",
-        porcentaje_cumplimiento: 0,
-        total_requeridos: 20,
-        total_aprobados: 0,
-        total_pendientes: 20,
-        total_observados: 0,
-        total_rechazados: 0,
-      } as PeriodoLaboral;
-    }
+    return await api<PeriodoLaboral>(`/contratos/${body.contrato_id}/periodos`, { method: "POST", body });
   },
 
   actualizarPeriodo: async (id: string, cambios: Partial<PeriodoLaboral>) => {
-    try {
-      return await patch<PeriodoLaboral>(`/certificacion/periodos/${id}`, cambios);
-    } catch {
-      const p = await certificacion.obtenerPeriodo(id);
-      return { ...p, ...cambios };
-    }
+    return await patch<PeriodoLaboral>(`/periodos/${id}`, cambios);
   },
 
   eliminarPeriodo: async (id: string) => {
-    try {
-      return await api<{ ok: boolean }>(`/certificacion/periodos/${id}`, { method: "DELETE" });
-    } catch {
-      return { ok: true };
-    }
+    return await api<{ ok: boolean }>(`/periodos/${id}`, { method: "DELETE" });
   },
 
   matrizDocumental: async (periodoId: string): Promise<MatrizCumplimientoData> => {
-    try {
-      return await api<MatrizCumplimientoData>(`/certificacion/periodos/${periodoId}/matriz`);
-    } catch {
-      const periodo = await certificacion.obtenerPeriodo(periodoId);
-      const sujetos: MatrizSujeto[] = [
-        { id: "s1", nombre: "Juan Pérez Soto", rut: "15.432.890-1", cargo: "Operador Rigger CAEX" },
-        { id: "s2", nombre: "Pedro Morales Silva", rut: "16.789.012-3", cargo: "Conductor Aljibe" },
-        { id: "s3", nombre: "María González Tapia", rut: "14.210.987-5", cargo: "Supervisora HSEC" },
-        { id: "s4", nombre: "Carlos Fuentealba R.", rut: "17.654.321-9", cargo: "Mecánico Mantención" },
-        { id: "s5", nombre: "Ana Araya Castro", rut: "18.123.456-K", cargo: "Prevencionista de Riesgos" },
-      ];
+    return await api<MatrizCumplimientoData>(`/periodos/${periodoId}/matriz`);
+  },
 
-      const requisitos: MatrizRequisito[] = [
-        { id: "r1", nombre: "Liquidación de Sueldo", ambito: "personal", obligatorio: true },
-        { id: "r2", nombre: "Cotizaciones Previred", ambito: "personal", obligatorio: true },
-        { id: "r3", nombre: "Libro de Asistencia", ambito: "personal", obligatorio: true },
-        { id: "r4", nombre: "Certificado F30-1", ambito: "empresa", obligatorio: true },
-        { id: "r5", nombre: "Contrato de Trabajo / Anexo", ambito: "personal", obligatorio: true },
-      ];
-
-      const celdas: Record<string, PeriodoDocumento> = {
-        "s1_r1": { id: "doc-1", periodo_id: periodoId, sujeto_id: "s1", sujeto_nombre: "Juan Pérez Soto", sujeto_rut: "15.432.890-1", sujeto_cargo: "Operador Rigger CAEX", requisito_template_id: "r1", requisito_nombre: "Liquidación de Sueldo", estado: "aprobado", fecha_carga: "2026-09-05", cargado_por: "Admin", archivo_url: "/docs/liq_juan.pdf", version: 1 },
-        "s1_r2": { id: "doc-2", periodo_id: periodoId, sujeto_id: "s1", sujeto_nombre: "Juan Pérez Soto", sujeto_rut: "15.432.890-1", sujeto_cargo: "Operador Rigger CAEX", requisito_template_id: "r2", requisito_nombre: "Cotizaciones Previred", estado: "aprobado", fecha_carga: "2026-09-05", cargado_por: "Admin", archivo_url: "/docs/prev_juan.pdf", version: 1 },
-        "s1_r3": { id: "doc-3", periodo_id: periodoId, sujeto_id: "s1", sujeto_nombre: "Juan Pérez Soto", sujeto_rut: "15.432.890-1", sujeto_cargo: "Operador Rigger CAEX", requisito_template_id: "r3", requisito_nombre: "Libro de Asistencia", estado: "observado", observaciones: "Falta firma del trabajador en día 15 de septiembre", fecha_carga: "2026-09-10", cargado_por: "Juan Pérez", archivo_url: "/docs/libro_juan.pdf", version: 1 },
-        "s1_r4": { id: "doc-4", periodo_id: periodoId, sujeto_id: "s1", sujeto_nombre: "Juan Pérez Soto", sujeto_rut: "15.432.890-1", sujeto_cargo: "Operador Rigger CAEX", requisito_template_id: "r4", requisito_nombre: "Certificado F30-1", estado: "aprobado", fecha_carga: "2026-09-02", cargado_por: "Empresa", archivo_url: "/docs/f30_1.pdf", version: 1 },
-        "s1_r5": { id: "doc-5", periodo_id: periodoId, sujeto_id: "s1", sujeto_nombre: "Juan Pérez Soto", sujeto_rut: "15.432.890-1", sujeto_cargo: "Operador Rigger CAEX", requisito_template_id: "r5", requisito_nombre: "Contrato de Trabajo / Anexo", estado: "aprobado", fecha_carga: "2026-09-01", cargado_por: "Admin", archivo_url: "/docs/contrato_juan.pdf", version: 1 },
-
-        "s2_r1": { id: "doc-6", periodo_id: periodoId, sujeto_id: "s2", sujeto_nombre: "Pedro Morales Silva", sujeto_rut: "16.789.012-3", sujeto_cargo: "Conductor Aljibe", requisito_template_id: "r1", requisito_nombre: "Liquidación de Sueldo", estado: "aprobado", fecha_carga: "2026-09-06", cargado_por: "Admin", archivo_url: "/docs/liq_pedro.pdf", version: 1 },
-        "s2_r2": { id: "doc-7", periodo_id: periodoId, sujeto_id: "s2", sujeto_nombre: "Pedro Morales Silva", sujeto_rut: "16.789.012-3", sujeto_cargo: "Conductor Aljibe", requisito_template_id: "r2", requisito_nombre: "Cotizaciones Previred", estado: "aprobado", fecha_carga: "2026-09-06", cargado_por: "Admin", archivo_url: "/docs/prev_pedro.pdf", version: 1 },
-        "s2_r3": { id: "doc-8", periodo_id: periodoId, sujeto_id: "s2", sujeto_nombre: "Pedro Morales Silva", sujeto_rut: "16.789.012-3", sujeto_cargo: "Conductor Aljibe", requisito_template_id: "r3", requisito_nombre: "Libro de Asistencia", estado: "cargado", fecha_carga: "2026-09-25", cargado_por: "Pedro Morales", archivo_url: "/docs/libro_pedro.pdf", version: 1 },
-        "s2_r4": { id: "doc-9", periodo_id: periodoId, sujeto_id: "s2", sujeto_nombre: "Pedro Morales Silva", sujeto_rut: "16.789.012-3", sujeto_cargo: "Conductor Aljibe", requisito_template_id: "r4", requisito_nombre: "Certificado F30-1", estado: "aprobado", fecha_carga: "2026-09-02", cargado_por: "Empresa", archivo_url: "/docs/f30_1.pdf", version: 1 },
-        "s2_r5": { id: "doc-10", periodo_id: periodoId, sujeto_id: "s2", sujeto_nombre: "Pedro Morales Silva", sujeto_rut: "16.789.012-3", sujeto_cargo: "Conductor Aljibe", requisito_template_id: "r5", requisito_nombre: "Contrato de Trabajo / Anexo", estado: "pendiente" },
-
-        "s3_r1": { id: "doc-11", periodo_id: periodoId, sujeto_id: "s3", sujeto_nombre: "María González Tapia", sujeto_rut: "14.210.987-5", sujeto_cargo: "Supervisora HSEC", requisito_template_id: "r1", requisito_nombre: "Liquidación de Sueldo", estado: "aprobado", fecha_carga: "2026-09-04", cargado_por: "Admin", archivo_url: "/docs/liq_maria.pdf", version: 1 },
-        "s3_r2": { id: "doc-12", periodo_id: periodoId, sujeto_id: "s3", sujeto_nombre: "María González Tapia", sujeto_rut: "14.210.987-5", sujeto_cargo: "Supervisora HSEC", requisito_template_id: "r2", requisito_nombre: "Cotizaciones Previred", estado: "aprobado", fecha_carga: "2026-09-04", cargado_por: "Admin", archivo_url: "/docs/prev_maria.pdf", version: 1 },
-        "s3_r3": { id: "doc-13", periodo_id: periodoId, sujeto_id: "s3", sujeto_nombre: "María González Tapia", sujeto_rut: "14.210.987-5", sujeto_cargo: "Supervisora HSEC", requisito_template_id: "r3", requisito_nombre: "Libro de Asistencia", estado: "aprobado", fecha_carga: "2026-09-08", cargado_por: "María G.", archivo_url: "/docs/libro_maria.pdf", version: 1 },
-        "s3_r4": { id: "doc-14", periodo_id: periodoId, sujeto_id: "s3", sujeto_nombre: "María González Tapia", sujeto_rut: "14.210.987-5", sujeto_cargo: "Supervisora HSEC", requisito_template_id: "r4", requisito_nombre: "Certificado F30-1", estado: "aprobado", fecha_carga: "2026-09-02", cargado_por: "Empresa", archivo_url: "/docs/f30_1.pdf", version: 1 },
-        "s3_r5": { id: "doc-15", periodo_id: periodoId, sujeto_id: "s3", sujeto_nombre: "María González Tapia", sujeto_rut: "14.210.987-5", sujeto_cargo: "Supervisora HSEC", requisito_template_id: "r5", requisito_nombre: "Contrato de Trabajo / Anexo", estado: "aprobado", fecha_carga: "2026-09-01", cargado_por: "Admin", archivo_url: "/docs/contrato_maria.pdf", version: 1 },
-
-        "s4_r1": { id: "doc-16", periodo_id: periodoId, sujeto_id: "s4", sujeto_nombre: "Carlos Fuentealba R.", sujeto_rut: "17.654.321-9", sujeto_cargo: "Mecánico Mantención", requisito_template_id: "r1", requisito_nombre: "Liquidación de Sueldo", estado: "observado", observaciones: "Monto no coincide con el anexo contractual vigente", fecha_carga: "2026-09-12", cargado_por: "Carlos F.", archivo_url: "/docs/liq_carlos.pdf", version: 1 },
-        "s4_r2": { id: "doc-17", periodo_id: periodoId, sujeto_id: "s4", sujeto_nombre: "Carlos Fuentealba R.", sujeto_rut: "17.654.321-9", sujeto_cargo: "Mecánico Mantención", requisito_template_id: "r2", requisito_nombre: "Cotizaciones Previred", estado: "aprobado", fecha_carga: "2026-09-05", cargado_por: "Admin", archivo_url: "/docs/prev_carlos.pdf", version: 1 },
-        "s4_r3": { id: "doc-18", periodo_id: periodoId, sujeto_id: "s4", sujeto_nombre: "Carlos Fuentealba R.", sujeto_rut: "17.654.321-9", sujeto_cargo: "Mecánico Mantención", requisito_template_id: "r3", requisito_nombre: "Libro de Asistencia", estado: "pendiente" },
-        "s4_r4": { id: "doc-19", periodo_id: periodoId, sujeto_id: "s4", sujeto_nombre: "Carlos Fuentealba R.", sujeto_rut: "17.654.321-9", sujeto_cargo: "Mecánico Mantención", requisito_template_id: "r4", requisito_nombre: "Certificado F30-1", estado: "aprobado", fecha_carga: "2026-09-02", cargado_por: "Empresa", archivo_url: "/docs/f30_1.pdf", version: 1 },
-        "s4_r5": { id: "doc-20", periodo_id: periodoId, sujeto_id: "s4", sujeto_nombre: "Carlos Fuentealba R.", sujeto_rut: "17.654.321-9", sujeto_cargo: "Mecánico Mantención", requisito_template_id: "r5", requisito_nombre: "Contrato de Trabajo / Anexo", estado: "aprobado", fecha_carga: "2026-09-01", cargado_por: "Admin", archivo_url: "/docs/contrato_carlos.pdf", version: 1 },
-
-        "s5_r1": { id: "doc-21", periodo_id: periodoId, sujeto_id: "s5", sujeto_nombre: "Ana Araya Castro", sujeto_rut: "18.123.456-K", sujeto_cargo: "Prevencionista de Riesgos", requisito_template_id: "r1", requisito_nombre: "Liquidación de Sueldo", estado: "aprobado", fecha_carga: "2026-09-05", cargado_por: "Admin", archivo_url: "/docs/liq_ana.pdf", version: 1 },
-        "s5_r2": { id: "doc-22", periodo_id: periodoId, sujeto_id: "s5", sujeto_nombre: "Ana Araya Castro", sujeto_rut: "18.123.456-K", sujeto_cargo: "Prevencionista de Riesgos", requisito_template_id: "r2", requisito_nombre: "Cotizaciones Previred", estado: "aprobado", fecha_carga: "2026-09-05", cargado_por: "Admin", archivo_url: "/docs/prev_ana.pdf", version: 1 },
-        "s5_r3": { id: "doc-23", periodo_id: periodoId, sujeto_id: "s5", sujeto_nombre: "Ana Araya Castro", sujeto_rut: "18.123.456-K", sujeto_cargo: "Prevencionista de Riesgos", requisito_template_id: "r3", requisito_nombre: "Libro de Asistencia", estado: "aprobado", fecha_carga: "2026-09-05", cargado_por: "Ana Araya", archivo_url: "/docs/libro_ana.pdf", version: 1 },
-        "s5_r4": { id: "doc-24", periodo_id: periodoId, sujeto_id: "s5", sujeto_nombre: "Ana Araya Castro", sujeto_rut: "18.123.456-K", sujeto_cargo: "Prevencionista de Riesgos", requisito_template_id: "r4", requisito_nombre: "Certificado F30-1", estado: "aprobado", fecha_carga: "2026-09-02", cargado_por: "Empresa", archivo_url: "/docs/f30_1.pdf", version: 1 },
-        "s5_r5": { id: "doc-25", periodo_id: periodoId, sujeto_id: "s5", sujeto_nombre: "Ana Araya Castro", sujeto_rut: "18.123.456-K", sujeto_cargo: "Prevencionista de Riesgos", requisito_template_id: "r5", requisito_nombre: "Contrato de Trabajo / Anexo", estado: "aprobado", fecha_carga: "2026-09-01", cargado_por: "Admin", archivo_url: "/docs/contrato_ana.pdf", version: 1 },
-      };
-
-      return {
-        periodo,
-        sujetos,
-        requisitos,
-        celdas,
-      };
-    }
+  subirDocumento: async (
+    periodoId: string,
+    body: { sujeto_id: string; requisito_template_id: string; archivo_url?: string }
+  ) => {
+    return await api<PeriodoDocumento>(`/periodos/${periodoId}/documentos`, {
+      method: "POST",
+      body,
+    });
   },
 
   auditarDocumento: async (
     documentoId: string,
     body: { accion: "aprobar" | "observar" | "rechazar"; observacion?: string }
   ) => {
-    try {
-      return await api<PeriodoDocumento>(`/certificacion/documentos/${documentoId}/auditar`, {
-        method: "POST",
-        body,
-      });
-    } catch {
-      const nuevoEstado: EstadoPeriodoDoc =
-        body.accion === "aprobar"
-          ? "aprobado"
-          : body.accion === "observar"
-          ? "observado"
-          : "rechazado";
-      return {
-        id: documentoId,
-        periodo_id: "per-sep-2026",
-        sujeto_id: "s1",
-        sujeto_nombre: "Trabajador Auditado",
-        sujeto_rut: "15.432.890-1",
-        requisito_template_id: "r1",
-        requisito_nombre: "Documento Auditado",
-        estado: nuevoEstado,
-        observaciones: body.observacion ?? null,
-        fecha_carga: new Date().toISOString().split("T")[0],
-      } as PeriodoDocumento;
-    }
+    return await api<PeriodoDocumento>(`/periodos/documentos/${documentoId}/auditar`, {
+      method: "POST",
+      body,
+    });
   },
 
   historialAuditoria: async (documentoId: string): Promise<AuditoriaDocumento[]> => {
-    try {
-      return await api<AuditoriaDocumento[]>(`/certificacion/documentos/${documentoId}/historial`);
-    } catch {
-      return [
-        {
-          id: "aud-1",
-          periodo_documento_id: documentoId,
-          auditor_nombre: "Sistema Acredittia",
-          accion: "cargar",
-          observacion: "Documento subido por el trabajador en plataforma.",
-          fecha: "2026-09-10 14:30",
-          version: 1,
-        },
-        {
-          id: "aud-2",
-          periodo_documento_id: documentoId,
-          auditor_nombre: "Auditor HSEC (Gonzalo R.)",
-          accion: "observar",
-          observacion: "Falta firma visible y timbre en la hoja 2.",
-          fecha: "2026-09-12 09:15",
-          version: 1,
-        },
-      ];
-    }
+    return await api<AuditoriaDocumento[]>(`/periodos/documentos/${documentoId}/historial`);
   },
 
   dashboardCumplimiento: async (periodoId: string): Promise<CumplimientoDashboardData> => {
-    try {
-      return await api<CumplimientoDashboardData>(`/certificacion/periodos/${periodoId}/dashboard`);
-    } catch {
-      return {
-        total_requeridos: 25,
-        pendientes: 3,
-        cargados: 2,
-        en_revision: 2,
-        aprobados: 18,
-        observados: 2,
-        rechazados: 0,
-        porcentaje_cumplimiento: 82,
-        por_tipo: [
-          { tipo: "Liquidaciones de Sueldo", porcentaje: 80, total: 5, aprobados: 4 },
-          { tipo: "Cotizaciones Previred", porcentaje: 100, total: 5, aprobados: 5 },
-          { tipo: "Libro de Asistencia", porcentaje: 60, total: 5, aprobados: 3 },
-          { tipo: "Certificado F30-1", porcentaje: 100, total: 5, aprobados: 5 },
-          { tipo: "Contratos y Anexos", porcentaje: 80, total: 5, aprobados: 4 },
-        ],
-        alertas: [
-          "Juan Pérez Soto tiene 1 observación pendiente en 'Libro de Asistencia'.",
-          "Carlos Fuentealba R. tiene 1 observación pendiente en 'Liquidación de Sueldo'.",
-          "Pedro Morales Silva no ha cargado su 'Contrato de Trabajo / Anexo'.",
-        ],
-      };
-    }
+    return await api<CumplimientoDashboardData>(`/periodos/${periodoId}/dashboard`);
   },
 };
+
 

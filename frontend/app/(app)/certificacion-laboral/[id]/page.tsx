@@ -87,14 +87,15 @@ export default function PeriodoDetallePage() {
     if (!docSeleccionado || !matrizData) return;
     const celdaKey = `${docSeleccionado.sujeto_id}_${docSeleccionado.requisito_template_id}`;
 
-    const docActualizado: PeriodoDocumento = {
-      ...docSeleccionado,
-      estado: "cargado",
-      archivo_url: URL.createObjectURL(file),
-      fecha_carga: new Date().toISOString().split("T")[0],
-      cargado_por: "Usuario Actual",
-      version: (docSeleccionado.version || 0) + 1,
-    };
+    // Fake a cloud URL for the demo
+    const urlFake = `https://storage.acredittia.cl/${file.name}`;
+    
+    // Call the backend to save the document
+    const docActualizado = await Api.certificacion.subirDocumento(periodoId, {
+      sujeto_id: docSeleccionado.sujeto_id,
+      requisito_template_id: docSeleccionado.requisito_template_id,
+      archivo_url: urlFake
+    });
 
     // Actualizar estado local
     setMatrizData({

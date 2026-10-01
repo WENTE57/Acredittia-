@@ -31,10 +31,13 @@ export default function CertificacionLaboralPage() {
     try {
       const [resPeriodos, resContratos] = await Promise.all([
         Api.certificacion.listarPeriodos(),
-        Api.contratos.listar().catch(() => ({ items: [] as Contrato[] })),
+        Api.contratos.listar().catch((err) => { console.error("CONTRATOS ERROR", err); return { items: [] as Contrato[] } }),
       ]);
       setPeriodos(resPeriodos.items);
       setContratos(resContratos.items);
+      if (resContratos.items.length > 0) {
+        setNuevoContratoId(resContratos.items[0].id);
+      }
     } catch (err) {
       console.error("Error al cargar períodos:", err);
     } finally {
@@ -55,7 +58,7 @@ export default function CertificacionLaboralPage() {
     setGuardando(true);
     try {
       const nuevo = await Api.certificacion.crearPeriodo({
-        contrato_id: nuevoContratoId || "lp1",
+        contrato_id: nuevoContratoId || (contratos.length > 0 ? contratos[0].id : ""),
         nombre: nuevoNombre.trim(),
         tipo: nuevoTipo,
         fecha_inicio: nuevaFechaInicio,
@@ -93,11 +96,7 @@ export default function CertificacionLaboralPage() {
   );
 
   const irADetalle = (id: string) => {
-    if (typeof (window as any).setAppRoute === "function") {
-      (window as any).setAppRoute(`/certificacion-laboral/${id}`);
-    } else {
-      router.push(`/certificacion-laboral/${id}`);
-    }
+    router.push(`/certificacion-laboral/${id}`);
   };
 
   return (
@@ -207,9 +206,8 @@ export default function CertificacionLaboralPage() {
               onChange={(e) => setNuevoContratoId(e.target.value)}
               className="w-full rounded-xl border border-slate-200 p-2.5 text-xs focus:border-cyan-500 focus:outline-none"
             >
-              <option value="lp1">Transporte y Operaciones MLP (Los Pelambres)</option>
-              <option value="and1">Servicios Mina Andina (Andina)</option>
-              <option value="ten1">Mantención Minera El Teniente</option>
+{contratos.length === 0 && <option value="">Sin contratos disponibles</option>}
+{contratos.map((c) => (<option key={c.id} value={c.id}>{c.nombre}</option>))}
             </select>
           </div>
 
@@ -270,3 +268,4 @@ export default function CertificacionLaboralPage() {
     </div>
   );
 }
+
