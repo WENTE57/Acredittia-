@@ -239,6 +239,7 @@ class Contrato(Base):
     renovacion_automatica: Mapped[bool] = mapped_column(Boolean, default=False)
     estado: Mapped[str] = mapped_column(pg_enum('contrato_estado'), default="vigente")
     origen_ia_review_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    hereda_plataformas: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     faena: Mapped[Faena] = relationship()
@@ -703,6 +704,8 @@ class PeriodoDocumentoRequerido(Base):
     requisito_template_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("requisito_templates.id"))
     ambito: Mapped[str] = mapped_column(pg_enum('req_ambito'))
     obligatorio: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class PeriodoDocumento(Base):

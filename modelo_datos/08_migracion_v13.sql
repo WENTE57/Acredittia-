@@ -1,0 +1,1 @@
+ALTER TABLE contratos ADD COLUMN hereda_plataformas BOOLEAN NOT NULL DEFAULT TRUE;
