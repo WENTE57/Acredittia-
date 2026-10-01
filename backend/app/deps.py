@@ -12,8 +12,7 @@ from .config import settings
 from .database import auth_session, get_db, set_ctx
 from .models import User
 from .security import decode_access_token
-
-oauth2 = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
+oauth2 = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token", auto_error=False)
 
 
 def err(status: int, code: str, message: str, details: list | None = None):

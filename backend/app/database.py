@@ -51,8 +51,9 @@ SCHEMA_SCRIPTS = [
     "04_rls.sql",
     "06_migracion_v11.sql",
     "07_migracion_v12.sql",
+    "08_migracion_v13.sql",
 ]
-SCHEMA_VERSION = 7
+SCHEMA_VERSION = 8
 MIGRATION_LOCK_ID = 918273        # clave del pg_advisory_lock de migración
 
 
@@ -187,6 +188,8 @@ def schema_version() -> int:
     with engine.connect() as c:
         if not _tabla_existe(c, "companies"):
             return 0
+        if _columna_existe(c, "contratos", "hereda_plataformas"):
+            return 8
         if _columna_existe(c, "requisito_templates", "archivo_ejemplo"):
             return 7
         if _tabla_existe(c, "plataforma_credenciales") and _tabla_existe(c, "cumplimiento_snapshots"):
@@ -261,11 +264,13 @@ def apply_schema(schema_dir: str | None = None) -> int:
             if actual == 0:
                 pendientes = SCHEMA_SCRIPTS
             elif actual == 3:
-                pendientes = ["04_rls.sql", "06_migracion_v11.sql", "07_migracion_v12.sql"]
+                pendientes = ["04_rls.sql", "06_migracion_v11.sql", "07_migracion_v12.sql", "08_migracion_v13.sql"]
             elif actual == 4:
-                pendientes = ["06_migracion_v11.sql", "07_migracion_v12.sql"]
+                pendientes = ["06_migracion_v11.sql", "07_migracion_v12.sql", "08_migracion_v13.sql"]
             elif actual == 6:
-                pendientes = ["07_migracion_v12.sql"]
+                pendientes = ["07_migracion_v12.sql", "08_migracion_v13.sql"]
+            elif actual == 7:
+                pendientes = ["08_migracion_v13.sql"]
             else:
                 pendientes = []
 

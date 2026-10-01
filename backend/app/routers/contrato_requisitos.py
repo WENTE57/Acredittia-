@@ -506,6 +506,24 @@ def crear_requisitos(contrato_id: uuid.UUID,
     return salida
 
 
+@router.post("/plataformas/{plat_id}/requisitos", status_code=201)
+def crear_requisitos_plataforma(contrato_id: uuid.UUID, plat_id: uuid.UUID,
+                                body: RequisitoIn | list[RequisitoIn],
+                                bulk: bool = Query(False),
+                                aplicar_retroactivo: bool = Query(False),
+                                db: Session = Depends(get_db),
+                                cid: uuid.UUID = Depends(get_company_id),
+                                user: User = Depends(get_current_user)):
+    """Crea requisitos específicamente anclados a una plataforma."""
+    entradas = body if isinstance(body, list) else [body]
+    for item in entradas:
+        item.vinculo_tipo = "plataforma"
+        item.vinculo_ref = plat_id
+    return crear_requisitos(contrato_id, body, bulk=bulk,
+                            aplicar_retroactivo=aplicar_retroactivo,
+                            db=db, cid=cid, user=user)
+
+
 @router.patch("/requisitos/{rid}")
 def editar_requisito(contrato_id: uuid.UUID, rid: uuid.UUID,
                      body: RequisitoPatch, db: Session = Depends(get_db),

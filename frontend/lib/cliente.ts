@@ -34,6 +34,9 @@ import type {
   Revision, RecursoExport, Sesion, Sujeto, SujetoCreado, SujetoDetalle,
   SyncLog, Tendencia, TipoRequisito, TipoReporte, Tokens, TrabajadorIn, TrabajadorPatch,
   Usuario, UsuarioEmpresa, Exportacion, Periodo,
+  PeriodoLaboral, PeriodoDocumentoRequerido, PeriodoDocumento, AuditoriaDocumento,
+  EstadoPeriodoDoc, MatrizCumplimientoData, MatrizSujeto, MatrizRequisito,
+  CumplimientoDashboardData,
 } from "./tipos";
 
 export * from "./api";
@@ -378,7 +381,7 @@ export const plataformas = {
 
   eliminar: (contratoId: string, pid: string) =>
     api<{ ok: boolean; requisitos_eliminados: number; credenciales_eliminadas: number }>(
-      `/contratos/${contratoId}/plataformas/${pid}`, { method: "DELETE" }),
+      `/contratos/${contratoId}/plataformas/${pid}`, { method: "DELETE", query: { confirm: true } }),
 
   solicitarAcceso: (contratoId: string, pid: string, nota?: string) =>
     api<PlataformaContrato>(
@@ -751,3 +754,68 @@ export const suscripcion = {
 
   urlFactura: (id: string) => api<DownloadUrl>(`/facturas/${id}/download-url`),
 };
+
+// ============================================================================
+// §16 — Certificación Laboral (Dev 4)
+// ============================================================================
+export const certificacion = {
+  listarPeriodos: async (params?: ParamsPagina & { estado?: string; contrato_id?: string; search?: string }) => {
+    return await api<Pagina<PeriodoLaboral>>("/periodos", { query: q(params) });
+  },
+
+  obtenerPeriodo: async (id: string) => {
+    return await api<PeriodoLaboral>(`/periodos/${id}`);
+  },
+
+  crearPeriodo: async (body: {
+    contrato_id: string;
+    nombre: string;
+    tipo: string;
+    fecha_inicio: string;
+    fecha_fin: string;
+  }) => {
+    return await api<PeriodoLaboral>(`/contratos/${body.contrato_id}/periodos`, { method: "POST", body });
+  },
+
+  actualizarPeriodo: async (id: string, cambios: Partial<PeriodoLaboral>) => {
+    return await patch<PeriodoLaboral>(`/periodos/${id}`, cambios);
+  },
+
+  eliminarPeriodo: async (id: string) => {
+    return await api<{ ok: boolean }>(`/periodos/${id}`, { method: "DELETE" });
+  },
+
+  matrizDocumental: async (periodoId: string): Promise<MatrizCumplimientoData> => {
+    return await api<MatrizCumplimientoData>(`/periodos/${periodoId}/matriz`);
+  },
+
+  subirDocumento: async (
+    periodoId: string,
+    body: { sujeto_id: string; requisito_template_id: string; archivo_url?: string }
+  ) => {
+    return await api<PeriodoDocumento>(`/periodos/${periodoId}/documentos`, {
+      method: "POST",
+      body,
+    });
+  },
+
+  auditarDocumento: async (
+    documentoId: string,
+    body: { accion: "aprobar" | "observar" | "rechazar"; observacion?: string }
+  ) => {
+    return await api<PeriodoDocumento>(`/periodos/documentos/${documentoId}/auditar`, {
+      method: "POST",
+      body,
+    });
+  },
+
+  historialAuditoria: async (documentoId: string): Promise<AuditoriaDocumento[]> => {
+    return await api<AuditoriaDocumento[]>(`/periodos/documentos/${documentoId}/historial`);
+  },
+
+  dashboardCumplimiento: async (periodoId: string): Promise<CumplimientoDashboardData> => {
+    return await api<CumplimientoDashboardData>(`/periodos/${periodoId}/dashboard`);
+  },
+};
+
+

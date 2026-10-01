@@ -11,6 +11,7 @@ import ContratosPage from "./contratos/page";
 import MandantesPage from "./mandantes/page";
 import AcreditacionesPage from "./faenas/page";
 import PersonasPage from "./personal/page";
+import DocsTrabajadoresPage from "./docs-trabajadores/page";
 import EquiposPage from "./equipos/page";
 import CargosPage from "./cargos/page";
 import RequisitosPage from "./requisitos/page";
@@ -21,6 +22,7 @@ import CalendarioPage from "./calendario/page";
 import IntegracionesPage from "./integraciones/page";
 import ConfigPage from "./config/page";
 import AdminPage from "./admin/page";
+import CertificacionLaboralPage from "./certificacion-laboral/page";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -70,6 +72,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         personas: "/personal",
         personal: "/personal",
         roster: "/personal",
+        "docs-trabajadores": "/docs-trabajadores",
+        certificacion: "/certificacion-laboral",
+        "certificacion-laboral": "/certificacion-laboral",
         equipos_global: "/equipos",
         equipos: "/equipos",
         cargos: "/cargos",
@@ -138,17 +143,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const isMatch = (r: string) => {
     if (r === "/dashboard") return activeRoute === "/dashboard" || activeRoute === "/";
-    return activeRoute.startsWith(r);
+    return activeRoute === r;
   };
 
   const knownRoutes = [
     "/dashboard", "/contratos", "/mandantes", "/faenas",
-    "/personal", "/equipos", "/cargos", "/requisitos",
+    "/personal", "/docs-trabajadores", "/equipos", "/cargos", "/requisitos",
     "/plantillas", "/reportes", "/alertas", "/calendario",
-    "/integraciones", "/config", "/admin",
+    "/integraciones", "/config", "/admin", "/certificacion-laboral"
   ];
 
-  const isKnown = knownRoutes.some(r => r === "/dashboard" ? (activeRoute === "/dashboard" || activeRoute === "/") : activeRoute.startsWith(r));
+  const isKnown = knownRoutes.some(r => r === "/dashboard" ? (activeRoute === "/dashboard" || activeRoute === "/") : activeRoute === r);
 
   return (
     <div id="app">
@@ -161,6 +166,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div style={{ display: isMatch("/mandantes") ? "block" : "none" }}><MandantesPage /></div>
           <div style={{ display: isMatch("/faenas") ? "block" : "none" }}><AcreditacionesPage /></div>
           <div style={{ display: isMatch("/personal") ? "block" : "none" }}><PersonasPage /></div>
+          <div style={{ display: isMatch("/docs-trabajadores") ? "block" : "none" }}><DocsTrabajadoresPage /></div>
           <div style={{ display: isMatch("/equipos") ? "block" : "none" }}><EquiposPage /></div>
           <div style={{ display: isMatch("/cargos") ? "block" : "none" }}><CargosPage /></div>
           <div style={{ display: isMatch("/requisitos") ? "block" : "none" }}><RequisitosPage /></div>
@@ -171,6 +177,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div style={{ display: isMatch("/integraciones") ? "block" : "none" }}><IntegracionesPage /></div>
           <div style={{ display: isMatch("/config") ? "block" : "none" }}><ConfigPage /></div>
           <div style={{ display: isMatch("/admin") ? "block" : "none" }}><AdminPage /></div>
+          <div style={{ display: isMatch("/certificacion-laboral") ? "block" : "none" }}><CertificacionLaboralPage /></div>
           {!isKnown && children}
         </div>
       </main>

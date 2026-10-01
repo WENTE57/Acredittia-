@@ -200,17 +200,18 @@ def plataformas_efectivas(db: Session, cid: uuid.UUID,
                           contrato: Contrato) -> list[dict]:
     """Plataformas efectivas del contrato (regla de herencia de §8.1).
 
-    Si el contrato tiene filas en `contrato_plataformas`, esa lista es la
-    efectiva y reemplaza por completo a la de la faena. Si no tiene ninguna,
-    hereda las de su faena con el estado de acceso de la empresa; esas entradas
-    llegan con `id=null` porque todavía no existe fila propia.
+    Si `hereda_plataformas` es False, el contrato gestiona su propia lista
+    exclusiva (que puede estar vacía). Si es True y tiene filas, éstas reemplazan
+    a las de la faena. Si es True y no tiene, hereda.
     """
     filas = _filas_del_contrato(db, cid, contrato.id)
     if filas:
         cuentas = _cuentas_activas(db, cid, [f.id for f in filas])
         return [_out(f, cuentas.get(f.id, 0)) for f in filas]
-    return [_out_heredada(fp, acceso)
-            for fp, acceso in _heredables(db, cid, contrato.faena_id)]
+    if contrato.hereda_plataformas:
+        return [_out_heredada(fp, acceso)
+                for fp, acceso in _heredables(db, cid, contrato.faena_id)]
+    return []
 
 
 def materializar_heredadas(db: Session, cid: uuid.UUID,
@@ -221,6 +222,8 @@ def materializar_heredadas(db: Session, cid: uuid.UUID,
     plataforma manual: sin ella, las filas propias reemplazarían silenciosamente
     a toda la lista del mandante. No hace nada si el contrato ya tiene filas.
     """
+    contrato.hereda_plataformas = False
+    
     if _filas_del_contrato(db, cid, contrato.id):
         return 0
     n = 0

@@ -286,7 +286,7 @@ def _q_sujetos(cid: uuid.UUID, tipo: str, filtros: dict,
                scope: uuid.UUID | None):
     """Sujetos de un tipo con los filtros de la vista de personal / equipos."""
     q = (select(Sujeto)
-         .join(Contrato, Contrato.id == Sujeto.contrato_id)
+         .outerjoin(Contrato, Contrato.id == Sujeto.contrato_id)
          .where(Sujeto.company_id == cid, Sujeto.tipo == tipo))
     contrato_id = _f_uuid(filtros, "contrato_id") or scope
     if contrato_id:

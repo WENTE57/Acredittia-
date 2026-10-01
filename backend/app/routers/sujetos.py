@@ -61,7 +61,7 @@ TIPO_POR_RUTA = {"personal": "trabajador", "equipos": "equipo"}
 # Entradas
 # ============================================================================
 class TrabajadorIn(BaseModel):
-    contrato_id: uuid.UUID
+    contrato_id: uuid.UUID | None = None
     nombre: str
     rut: str
     # `cargo_id` es la forma recomendada (referencia al catálogo). `cargo` como
@@ -70,6 +70,7 @@ class TrabajadorIn(BaseModel):
     cargo_id: uuid.UUID | None = None
     cargo: str | None = None
     es_conductor: bool = False
+    estado: str | None = None
 
 
 class EquipoIn(BaseModel):
@@ -86,6 +87,7 @@ class TrabajadorPatch(BaseModel):
     cargo_id: uuid.UUID | None = None
     cargo: str | None = None
     es_conductor: bool | None = None
+    estado: str | None = None
 
 
 class EquipoPatch(BaseModel):
@@ -194,7 +196,7 @@ def listar_sujetos(db: Session, cid: uuid.UUID, tipo: str, p: Page, *,
     `faena_id` obliga a unir con `contratos`: la faena no está denormalizada en
     el sujeto y filtrar en Python rompería la paginación.
     """
-    q = (select(Sujeto).join(Contrato, Contrato.id == Sujeto.contrato_id)
+    q = (select(Sujeto).outerjoin(Contrato, Contrato.id == Sujeto.contrato_id)
          .where(Sujeto.company_id == cid, Sujeto.tipo == tipo))
     efectivo = contrato_id or scope
     if efectivo:
@@ -291,23 +293,35 @@ def crear_trabajador(body: TrabajadorIn, db: Session = Depends(get_db),
     para que alguien lo clasifique. El expediente EMSIPOR se crea si el cargo lo
     exige o si el trabajador viene marcado como conductor.
     """
-    c = _validar_contrato(db, cid, body.contrato_id, user)
+    c = None
+    if body.contrato_id:
+        c = _validar_contrato(db, cid, body.contrato_id, user)
+        
     if not validar_rut(body.rut):
         raise err(422, "RUT_INVALIDO", "RUT inválido; use formato 12.345.678-5")
-    if db.scalar(select(Sujeto.id).where(
-            Sujeto.company_id == cid, Sujeto.contrato_id == c.id,
+        
+    query = select(Sujeto.id).where(
+            Sujeto.company_id == cid,
             Sujeto.rut == body.rut, Sujeto.tipo == "trabajador",
-            Sujeto.estado != "baja")):
+            Sujeto.estado != "baja")
+    if c:
+        query = query.where(Sujeto.contrato_id == c.id)
+    else:
+        query = query.where(Sujeto.contrato_id == None)
+
+    if db.scalar(query):
         raise err(409, "RUT_DUPLICADO",
-                  "El trabajador ya está activo en este contrato")
+                  "El trabajador ya está activo con el mismo rut")
 
     cargo, cargo_creado = _resolver_cargo_entrada(db, cid, body.cargo_id,
                                                   body.cargo)
-    s = Sujeto(company_id=cid, contrato_id=c.id, tipo="trabajador",
+    s = Sujeto(company_id=cid, contrato_id=c.id if c else None, tipo="trabajador",
                nombre=body.nombre.strip(), rut=body.rut,
                cargo=cargo.nombre if cargo else (body.cargo or None),
                cargo_id=cargo.id if cargo else None,
                es_conductor=body.es_conductor)
+    if body.estado:
+        s.estado = body.estado
     db.add(s)
     try:
         db.flush()
@@ -316,11 +330,11 @@ def crear_trabajador(body: TrabajadorIn, db: Session = Depends(get_db),
         raise err(409, "RUT_DUPLICADO", "El trabajador ya existe en este contrato")
 
     n = instanciar_docs(db, cid, "personal", sujeto_id=s.id,
-                        faena_id=c.faena_id, cargo_id=s.cargo_id,
-                        contrato_plantilla_id=c.id)
+                        faena_id=c.faena_id if c else None, cargo_id=s.cargo_id,
+                        contrato_plantilla_id=c.id if c else None)
     n_emsipor = _sincronizar_emsipor(db, s)
     actividad.log(db, cid, "creacion", "personal",
-                  f"Trabajador {s.nombre} agregado a '{c.nombre}'"
+                  f"Trabajador {s.nombre} agregado" + (f" a '{c.nombre}'" if c else "")
                   + (f" con cargo '{s.cargo}'" if s.cargo else ""),
                   user_id=user.id, entidad_tipo="sujeto", entidad_id=s.id)
     db.commit()

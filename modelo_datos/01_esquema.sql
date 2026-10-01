@@ -49,6 +49,7 @@ CREATE TYPE evento_categoria   AS ENUM ('vencimiento','mantencion','capacitacion
 CREATE TYPE actividad_tipo     AS ENUM ('creacion','actualizacion','subida_documento','asignacion','alerta_ia','visualizacion','comentario');
 CREATE TYPE suscripcion_estado AS ENUM ('trial','activa','morosa','cancelada');
 CREATE TYPE factura_estado     AS ENUM ('pendiente','pagada','fallida','anulada');
+CREATE TYPE unidad_vigencia    AS ENUM ('dias','semanas','meses','anos','indefinido');
 
 -- Dominio para RUT chileno con puntos y dígito verificador (formato 76.543.210-9)
 CREATE DOMAIN rut_chileno AS text
@@ -166,6 +167,23 @@ CREATE TABLE requisito_templates (
   updated_at     timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE plantillas (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id  uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  nombre      text NOT NULL,
+  descripcion text,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE plantilla_requisitos (
+  plantilla_id uuid NOT NULL REFERENCES plantillas(id) ON DELETE CASCADE,
+  requisito_id uuid NOT NULL REFERENCES requisito_templates(id) ON DELETE CASCADE,
+  obligatorio  boolean NOT NULL DEFAULT true,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (plantilla_id, requisito_id)
+);
+
 CREATE TABLE requisitos_terreno (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   ambito      text NOT NULL CHECK (ambito IN ('conductor','equipo')),
@@ -226,6 +244,7 @@ CREATE TABLE contratos (
   renovacion_automatica boolean NOT NULL DEFAULT false,
   estado                contrato_estado NOT NULL DEFAULT 'vigente',
   origen_ia_review_id   uuid,          -- FK a ia_reviews (se agrega abajo)
+  hereda_plataformas    boolean NOT NULL DEFAULT true,
   created_at            timestamptz NOT NULL DEFAULT now(),
   updated_at            timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT ck_contratos_fechas CHECK (fecha_termino IS NULL OR fecha_inicio IS NULL OR fecha_termino >= fecha_inicio),
@@ -235,7 +254,7 @@ CREATE TABLE contratos (
 CREATE TABLE sujetos (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id   uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
-  contrato_id  uuid NOT NULL REFERENCES contratos(id) ON DELETE CASCADE,
+  contrato_id  uuid REFERENCES contratos(id) ON DELETE CASCADE,
   tipo         subject_type NOT NULL,
   estado       subject_status NOT NULL DEFAULT 'proc',
   nombre       text NOT NULL,
@@ -249,6 +268,7 @@ CREATE TABLE sujetos (
   marca        text,
   modelo       text,
   anio         smallint CHECK (anio IS NULL OR anio BETWEEN 1990 AND 2035),
+  plantilla_id uuid REFERENCES plantillas(id) ON DELETE SET NULL, -- Molde aplicado a este sujeto
   created_at   timestamptz NOT NULL DEFAULT now(),
   updated_at   timestamptz NOT NULL DEFAULT now(),
   -- Coherencia por tipo: un trabajador tiene RUT y no patente; un equipo al revés
@@ -265,6 +285,8 @@ CREATE TABLE documentos (
   titulo       text NOT NULL,
   obligatorio  boolean NOT NULL DEFAULT true,
   estado       doc_estado NOT NULL DEFAULT 'falta',
+  vigencia_numero integer,
+  vigencia_unidad unidad_vigencia,
   vence        date,
   estado_calc  doc_estado_calc NOT NULL DEFAULT 'falta',
   es_emsipor   boolean NOT NULL DEFAULT false,

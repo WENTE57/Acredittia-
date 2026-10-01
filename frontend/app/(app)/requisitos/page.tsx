@@ -358,8 +358,8 @@ export default function RequisitosPage() {
         </div>
       </div>
 
-      {/* 2. Tarjetas KPI de Resumen (5 Columnas) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      {/* 2. Tarjetas KPI de Resumen */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Total Requisitos */}
         <div className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3.5 shadow-sm">
           <div className="w-11 h-11 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl shrink-0">
@@ -374,69 +374,6 @@ export default function RequisitosPage() {
           </div>
         </div>
 
-        {/* Activos */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3.5 shadow-sm">
-          <div className="w-11 h-11 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shrink-0 font-bold">
-            ✓
-          </div>
-          <div>
-            <div className="text-xs text-slate-500 font-medium">Activos</div>
-            <div className="text-2xl font-bold text-slate-900 leading-tight">
-              {loading ? "..." : kpiActivos}
-            </div>
-            <div className="text-[11px] text-emerald-600 font-medium mt-0.5">
-              {pctActivos}% del total
-            </div>
-          </div>
-        </div>
-
-        {/* Por Vencer (próx. 30 días) */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3.5 shadow-sm">
-          <div className="w-11 h-11 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xl shrink-0">
-            ⏳
-          </div>
-          <div>
-            <div className="text-xs text-slate-500 font-medium">Por vencer (próx. 30 días)</div>
-            <div className="text-2xl font-bold text-slate-900 leading-tight">
-              {loading ? "..." : kpiPorVencer}
-            </div>
-            <div className="text-[11px] text-amber-600 font-medium mt-0.5">
-              {pctPorVencer}% del total
-            </div>
-          </div>
-        </div>
-
-        {/* Vencidos */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3.5 shadow-sm">
-          <div className="w-11 h-11 rounded-lg bg-red-50 text-red-600 flex items-center justify-center text-xl shrink-0 font-bold">
-            ✕
-          </div>
-          <div>
-            <div className="text-xs text-slate-500 font-medium">Vencidos</div>
-            <div className="text-2xl font-bold text-slate-900 leading-tight">
-              {loading ? "..." : kpiVencidos}
-            </div>
-            <div className="text-[11px] text-red-600 font-medium mt-0.5">
-              {pctVencidos}% del total
-            </div>
-          </div>
-        </div>
-
-        {/* Inactivos / Pendientes */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3.5 shadow-sm">
-          <div className="w-11 h-11 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center text-xl shrink-0 font-bold">
-            ⏸
-          </div>
-          <div>
-            <div className="text-xs text-slate-500 font-medium">Inactivos / Pendientes</div>
-            <div className="text-2xl font-bold text-slate-900 leading-tight">
-              {loading ? "..." : kpiInactivos}
-            </div>
-            <div className="text-[11px] text-amber-700 font-medium mt-0.5">
-              {pctInactivos}% del total
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* 3. Barra de Filtros */}
@@ -489,22 +426,6 @@ export default function RequisitosPage() {
           <option value="emsipor">Licencia Interna</option>
         </select>
 
-        {/* Filtro Estado */}
-        <select
-          value={estadoFilter}
-          onChange={(e) => {
-            setEstadoFilter(e.target.value);
-            setCurrentPage(1);
-          }}
-          className="px-3 py-2 text-xs border border-slate-200 rounded-lg bg-slate-50 font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-        >
-          <option value="todos">Estado: Todos</option>
-          <option value="ok">Activo</option>
-          <option value="porvenc">Por vencer</option>
-          <option value="venc">Vencido</option>
-          <option value="falta">Inactivo / Pendiente</option>
-        </select>
-
         {/* Orden */}
         <select
           value={sortFilter}
@@ -534,8 +455,6 @@ export default function RequisitosPage() {
                 <th className="py-3 px-3">Ámbito</th>
                 <th className="py-3 px-3">Obligatorio</th>
                 <th className="py-3 px-3">Aplicable a</th>
-                <th className="py-3 px-3">Estado</th>
-                <th className="py-3 px-3">Vencimiento</th>
                 <th className="py-3 px-3 text-center">Documentos Asociados</th>
                 <th className="py-3 px-4 text-right">Acciones</th>
               </tr>
@@ -543,13 +462,13 @@ export default function RequisitosPage() {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={10} className="p-12 text-center text-slate-400 text-xs">
+                  <td colSpan={8} className="p-12 text-center text-slate-400 text-xs">
                     Cargando catálogo de requisitos...
                   </td>
                 </tr>
               ) : requisitosList.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="p-12 text-center text-slate-400 text-xs space-y-2">
+                  <td colSpan={8} className="p-12 text-center text-slate-400 text-xs space-y-2">
                     <div>No se encontraron requisitos que coincidan con los filtros.</div>
                   </td>
                 </tr>
@@ -602,18 +521,6 @@ export default function RequisitosPage() {
                       {/* Aplicable a */}
                       <td className="py-3.5 px-3 text-slate-600 font-medium whitespace-nowrap">
                         {aplicableA}
-                      </td>
-
-                      {/* Estado */}
-                      <td className="py-3.5 px-3 whitespace-nowrap">
-                        <span className={`px-2.5 py-1 text-[10px] rounded-md ${estadoBadge.cls}`}>
-                          {estadoBadge.label}
-                        </span>
-                      </td>
-
-                      {/* Vencimiento */}
-                      <td className="py-3.5 px-3 text-slate-500 font-medium whitespace-nowrap">
-                        {r.vencimiento || (r.vigencia_meses ? `${r.vigencia_meses} meses` : "—")}
                       </td>
 
                       {/* Documentos Asociados */}

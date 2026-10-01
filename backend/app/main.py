@@ -15,6 +15,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 
 from .config import settings
 from .database import (SessionLocal, apply_schema, assert_schema_version,
@@ -104,6 +105,17 @@ async def http_exc(request: Request, exc: HTTPException):
         "code": "ERROR", "message": str(exc.detail)}
     return JSONResponse(status_code=exc.status_code, content={"error": detail},
                         headers=getattr(exc, "headers", None))
+
+@app.exception_handler(RequestValidationError)
+async def validation_exc(request: Request, exc: RequestValidationError):
+    errors = exc.errors()
+    msg = "Error de validación"
+    if errors:
+        msg = f"{errors[0]['loc'][-1]}: {errors[0]['msg']}"
+    return JSONResponse(
+        status_code=422,
+        content={"error": {"code": "VALIDATION_ERROR", "message": msg}}
+    )
 
 
 API = "/api/v1"

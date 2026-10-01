@@ -51,7 +51,7 @@ def _consulta_grupos(cid: uuid.UUID, tipo: str, clave,
                 func.min(Sujeto.nombre).label("nombre"),
                 func.max(Sujeto.created_at).label("ultimo"))
          .select_from(Sujeto)
-         .join(Contrato, Contrato.id == Sujeto.contrato_id)
+         .outerjoin(Contrato, Contrato.id == Sujeto.contrato_id)
          .where(Sujeto.company_id == cid, Sujeto.tipo == tipo,
                 clave.is_not(None), clave != "")
          .group_by(clave))

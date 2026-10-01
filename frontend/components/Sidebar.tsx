@@ -7,8 +7,10 @@ import * as Api from "@/lib/cliente";
 const ITEMS = [
   { href: "/dashboard", icono: "🏠", nombre: "Inicio" },
   { href: "/contratos", icono: "📋", nombre: "Contratos" },
+  { href: "/certificacion-laboral", icono: "📊", nombre: "Certificación Laboral" },
   { href: "/mandantes", icono: "🏢", nombre: "Mandantes" },
   { href: "/personal", icono: "👥", nombre: "Personal" },
+  { href: "/docs-trabajadores", icono: "📁", nombre: "Docs. Trabajadores" },
   { href: "/equipos", icono: "🚛", nombre: "Equipos / Vehículos" },
   { href: "/cargos", icono: "🪪", nombre: "Cargos" },
   { href: "/requisitos", icono: "📑", nombre: "Requisitos" },

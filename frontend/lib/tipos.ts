@@ -506,7 +506,7 @@ export type ChecklistSujeto = {
 };
 
 export type TrabajadorIn = {
-  contrato_id: string;
+  contrato_id?: string | null;
   nombre: string;
   rut: string;
   /** Recomendado. 400 `CARGO_INEXISTENTE` si no es de la empresa. */
@@ -514,6 +514,7 @@ export type TrabajadorIn = {
   /** Texto libre: el backend resuelve o crea el cargo (`cargo_creado`). */
   cargo?: string | null;
   es_conductor?: boolean;
+  estado?: string | null;
 };
 
 /** `PATCH /personal/{id}`: solo estos campos (§5 de RUPTURAS). */
@@ -522,6 +523,7 @@ export type TrabajadorPatch = {
   cargo_id?: string | null;
   cargo?: string | null;
   es_conductor?: boolean;
+  estado?: string | null;
 };
 
 export type EquipoIn = {
@@ -1051,3 +1053,105 @@ export type RequisitoFila = {
   venc: number;
   falta: number;
 };
+
+// ============================================================================
+// Certificación Laboral (Dev 4)
+// ============================================================================
+export type EstadoPeriodo = "abierto" | "en_revision" | "cerrado";
+export type EstadoPeriodoDoc =
+  | "pendiente"
+  | "cargado"
+  | "en_revision"
+  | "aprobado"
+  | "observado"
+  | "rechazado";
+
+export type PeriodoLaboral = {
+  id: string;
+  contrato_id: string;
+  contrato_nombre?: string;
+  nombre: string;
+  tipo: "mensual" | "quincenal" | "otro";
+  fecha_inicio: string;
+  fecha_fin: string;
+  estado: EstadoPeriodo;
+  porcentaje_cumplimiento: number;
+  total_requeridos?: number;
+  total_aprobados?: number;
+  total_pendientes?: number;
+  total_observados?: number;
+  total_rechazados?: number;
+  created_at?: string;
+};
+
+export type PeriodoDocumentoRequerido = {
+  id: string;
+  periodo_id: string;
+  requisito_template_id: string;
+  requisito_nombre: string;
+  ambito: Ambito;
+  obligatorio: boolean;
+};
+
+export type PeriodoDocumento = {
+  id: string;
+  periodo_id: string;
+  sujeto_id: string;
+  sujeto_nombre: string;
+  sujeto_rut: string;
+  sujeto_cargo?: string;
+  requisito_template_id: string;
+  requisito_nombre: string;
+  archivo_url?: string | null;
+  estado: EstadoPeriodoDoc;
+  fecha_carga?: string | null;
+  cargado_por?: string | null;
+  observaciones?: string | null;
+  version?: number;
+};
+
+export type AuditoriaDocumento = {
+  id: string;
+  periodo_documento_id: string;
+  auditor_id?: string;
+  auditor_nombre: string;
+  accion: "cargar" | "aprobar" | "observar" | "rechazar";
+  observacion?: string;
+  fecha: string;
+  version: number;
+};
+
+export type MatrizSujeto = {
+  id: string;
+  nombre: string;
+  rut: string;
+  cargo?: string;
+};
+
+export type MatrizRequisito = {
+  id: string;
+  nombre: string;
+  ambito: Ambito;
+  obligatorio: boolean;
+};
+
+export type MatrizCumplimientoData = {
+  periodo: PeriodoLaboral;
+  sujetos: MatrizSujeto[];
+  requisitos: MatrizRequisito[];
+  celdas: Record<string, PeriodoDocumento>;
+};
+
+export type CumplimientoDashboardData = {
+  total_requeridos: number;
+  pendientes: number;
+  cargados: number;
+  en_revision: number;
+  aprobados: number;
+  observados: number;
+  rechazados: number;
+  porcentaje_cumplimiento: number;
+  por_tipo: { tipo: string; porcentaje: number; total: number; aprobados: number }[];
+  alertas: string[];
+};
+
