@@ -52,8 +52,9 @@ SCHEMA_SCRIPTS = [
     "06_migracion_v11.sql",
     "07_migracion_v12.sql",
     "08_migracion_v13.sql",
+    "09_certificacion_laboral.sql",
 ]
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 9
 MIGRATION_LOCK_ID = 918273        # clave del pg_advisory_lock de migración
 
 
@@ -188,6 +189,8 @@ def schema_version() -> int:
     with engine.connect() as c:
         if not _tabla_existe(c, "companies"):
             return 0
+        if _tabla_existe(c, "periodos_laborales"):
+            return 9
         if _columna_existe(c, "contratos", "hereda_plataformas"):
             return 8
         if _columna_existe(c, "requisito_templates", "archivo_ejemplo"):
@@ -264,13 +267,15 @@ def apply_schema(schema_dir: str | None = None) -> int:
             if actual == 0:
                 pendientes = SCHEMA_SCRIPTS
             elif actual == 3:
-                pendientes = ["04_rls.sql", "06_migracion_v11.sql", "07_migracion_v12.sql", "08_migracion_v13.sql"]
+                pendientes = ["04_rls.sql", "06_migracion_v11.sql", "07_migracion_v12.sql", "08_migracion_v13.sql", "09_certificacion_laboral.sql"]
             elif actual == 4:
-                pendientes = ["06_migracion_v11.sql", "07_migracion_v12.sql", "08_migracion_v13.sql"]
+                pendientes = ["06_migracion_v11.sql", "07_migracion_v12.sql", "08_migracion_v13.sql", "09_certificacion_laboral.sql"]
             elif actual == 6:
-                pendientes = ["07_migracion_v12.sql", "08_migracion_v13.sql"]
+                pendientes = ["07_migracion_v12.sql", "08_migracion_v13.sql", "09_certificacion_laboral.sql"]
             elif actual == 7:
-                pendientes = ["08_migracion_v13.sql"]
+                pendientes = ["08_migracion_v13.sql", "09_certificacion_laboral.sql"]
+            elif actual == 8:
+                pendientes = ["09_certificacion_laboral.sql"]
             else:
                 pendientes = []
 
