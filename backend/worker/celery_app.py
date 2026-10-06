@@ -31,6 +31,7 @@ from app.config import settings  # noqa: E402
 # Importar los módulos de tareas puebla el registro TAREAS.
 from app.services import integraciones as _svc_integraciones  # noqa: E402,F401
 from app.services import tasks as _svc_tasks  # noqa: E402,F401
+from app.services import email as _svc_email  # noqa: E402,F401
 from app.services.jobs import TAREAS  # noqa: E402
 
 log = logging.getLogger("acredittia.worker")
@@ -81,15 +82,16 @@ def cron_diario():
     """
     from app.database import worker_session
     from app.services.vencimientos import (
-        expirar_credenciales, escribir_snapshots, recalcular_documentos)
+        expirar_credenciales, escribir_snapshots, recalcular_documentos, alertar_vencimiento_contratos)
 
     with worker_session(is_admin=True) as db:
         docs = recalcular_documentos(db)
+        contratos = alertar_vencimiento_contratos(db)
         snaps = escribir_snapshots(db)
         creds = expirar_credenciales(db)
-    log.info("Cron diario: %s documentos, %s snapshots, %s credenciales expiradas",
-             docs, snaps, creds)
-    return {"documentos": docs, "snapshots": snaps, "credenciales": creds}
+    log.info("Cron diario: %s documentos, %s contratos, %s snapshots, %s credenciales expiradas",
+             docs, contratos, snaps, creds)
+    return {"documentos": docs, "contratos": contratos, "snapshots": snaps, "credenciales": creds}
 
 
 @celery.task(name="acredittia.cron_reportes_programados")

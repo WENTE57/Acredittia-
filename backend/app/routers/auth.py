@@ -293,10 +293,12 @@ def password_forgot(body: ForgotIn):
                 expires_at=ahora + timedelta(minutes=settings.reset_ttl_min),
             ))
             db.commit()
-            # TODO(notificaciones §17): enviar el email con el enlace
-            # {frontend}/reset?token=<raw> usando SMTP_* y `email_from`. Hoy no
-            # hay transporte configurado: sin el bloque de desarrollo de abajo el
-            # token quedaría inalcanzable.
+            # Enviar el email con el enlace
+            from ..services.jobs import enqueue
+            # Nota: El frontend suele estar en otra ruta, por ejemplo /auth/reset.
+            enlace = f"{settings.public_base_url}/auth/reset?token={raw}"
+            html = f"<p>Hola {user.nombre},</p><p>Para restablecer tu contraseña, haz clic en el siguiente enlace:</p><p><a href='{enlace}'>{enlace}</a></p><p>Este enlace expirará en {settings.reset_ttl_min} minutos.</p>"
+            enqueue("enviar_email", to_email=user.email, subject="Recuperar Contraseña - Acredittia", html_body=html)
             logger.info("token de reset emitido para user=%s", user.id)
             if settings.jwt_secret.startswith("dev-"):
                 # Solo con el secreto de desarrollo por defecto. En producción

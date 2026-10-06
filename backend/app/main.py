@@ -28,7 +28,8 @@ from .routers import (actividad, admin, alertas, auth, blobs, calendario, cargos
 # Importar los módulos de tareas registra las entradas de TAREAS que usa la cola.
 from .services import integraciones as _svc_integraciones  # noqa: F401
 from .services import tasks as _svc_tasks  # noqa: F401
-from .services.vencimientos import recalcular_documentos
+from .services import email as _svc_email  # noqa: F401
+from .services.vencimientos import recalcular_documentos, alertar_vencimiento_contratos
 
 log = logging.getLogger("acredittia")
 
@@ -38,6 +39,7 @@ def _job_vencimientos() -> None:
     from .database import worker_session
     with worker_session(is_admin=True) as db:
         recalcular_documentos(db)
+        alertar_vencimiento_contratos(db)
 
 
 @asynccontextmanager
@@ -56,6 +58,7 @@ async def lifespan(app: FastAPI):
         try:
             seeds.run(db)
             recalcular_documentos(db)
+            alertar_vencimiento_contratos(db)
         finally:
             reset_ctx()
 
