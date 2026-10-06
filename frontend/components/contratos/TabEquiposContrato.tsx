@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import * as Api from "@/lib/cliente";
 import { Contrato, PlataformaContrato, Sujeto } from "@/lib/tipos";
-import { Paginador } from "./ui";
+import { Paginador } from "@/components/ui";
 
 interface TabEquiposContratoProps {
   contrato: Contrato;

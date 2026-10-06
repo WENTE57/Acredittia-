@@ -6,11 +6,14 @@ IA_BACKEND=claude y ANTHROPIC_API_KEY.
 """
 import hashlib
 import random
+import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger("acredittia.ia")
 
 from ..config import settings
 from ..models import Documento, DocumentoArchivo, IaHallazgo, IaReview
@@ -135,7 +138,123 @@ class ClaudeReviewer(IAReviewer):
         )
 
 
+class NvidiaNimReviewer(IAReviewer):
+    """Adaptador para Nvidia NIM (Llama 3.2 Vision)."""
+
+    PROMPT = (
+        "Eres un auditor estricto de acreditación minera en Chile. Analiza la imagen adjunta.\n"
+        "REQUISITO ESPERADO: '{titulo}'\n"
+        "CONTEXTO: {contexto}\n\n"
+        "MÉTRICAS DE EVALUACIÓN:\n"
+        "1. Correspondencia: ¿El documento de la imagen es efectivamente un(a) '{titulo}'? Si es otro tipo de documento, "
+        "marca el resultado como 'con_errores' y genera un hallazgo de tipo 'error' indicando que no corresponde.\n"
+        "2. Legibilidad: ¿El documento se puede leer claramente?\n"
+        "3. Vigencia: Extrae 'fecha_emision' y 'fecha_vencimiento' si existen.\n"
+        "4. Confianza: Calcula un número real entre 0.00 y 1.00 indicando qué tan seguro estás de tu lectura.\n\n"
+        "Responde SOLO con un JSON válido usando estrictamente esta estructura:\n"
+        '{{"resultado": "validado" | "con_observaciones" | "con_errores", "confianza": <float>, '
+        '"campos_extraidos": {{}}, "hallazgos": [{{"tipo": "error" | "warning" | "info", '
+        '"codigo": "SNAKE_CASE", "mensaje": "..."}}]}}'
+    )
+
+    def revisar(self, contenido: bytes, filename: str, doc: Documento, contexto: str) -> ResultadoIA:
+        import base64
+        import json
+        import urllib.request
+        from urllib.error import HTTPError
+
+        # Convertir a imagen si es PDF
+        if filename.lower().endswith(".pdf"):
+            try:
+                import fitz  # PyMuPDF
+                doc_pdf = fitz.open(stream=contenido, filetype="pdf")
+                if len(doc_pdf) > 0:
+                    page = doc_pdf.load_page(0)
+                    pix = page.get_pixmap(dpi=150)
+                    contenido = pix.tobytes("jpeg")
+                doc_pdf.close()
+            except Exception as e:
+                logger.warning("No se pudo convertir el PDF a imagen con PyMuPDF: %s", e)
+            media = "image/jpeg"
+        else:
+            media = "image/jpeg" if filename.lower().endswith((".jpg", ".jpeg")) else "image/png"
+
+        b64_data = base64.b64encode(contenido).decode("utf-8")
+        data_url = f"data:{media};base64,{b64_data}"
+
+        prompt = self.PROMPT.format(titulo=doc.titulo, contexto=contexto)
+
+        payload = {
+            "model": "meta/llama-3.2-90b-vision-instruct",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {"type": "image_url", "image_url": {"url": data_url}}
+                    ]
+                }
+            ],
+            "max_tokens": 1024,
+            "temperature": 0.1,
+            "stream": False
+        }
+
+        req = urllib.request.Request(
+            "https://integrate.api.nvidia.com/v1/chat/completions",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {settings.nvidia_nim_api_key}",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            method="POST",
+        )
+
+        try:
+            with urllib.request.urlopen(req) as resp:
+                body = json.loads(resp.read())
+                # El modelo retorna el JSON en content
+                content = body["choices"][0]["message"]["content"]
+                
+                logger.info(f"Respuesta bruta de Nvidia: {content}")
+                
+                # Buscar bloque JSON
+                import re
+                match = re.search(r'\{.*\}', content, re.DOTALL)
+                if match:
+                    json_str = match.group(0)
+                else:
+                    json_str = content
+                
+                try:
+                    parsed = json.loads(json_str)
+                except json.JSONDecodeError:
+                    parsed = {
+                        "resultado": "con_errores",
+                        "confianza": 0.0,
+                        "campos_extraidos": {},
+                        "hallazgos": [
+                            {"tipo": "error", "codigo": "MODEL_ERROR", "mensaje": content[:200]}
+                        ]
+                    }
+        except HTTPError as e:
+            err_msg = e.read().decode()
+            raise RuntimeError(f"Error de Nvidia NIM {e.code}: {err_msg}") from e
+        except Exception as e:
+            raise RuntimeError(f"Error parseando respuesta JSON de Nvidia: {e}") from e
+
+        return ResultadoIA(
+            resultado=parsed.get("resultado", "con_errores"),
+            confianza=float(parsed.get("confianza", 0.0)),
+            campos_extraidos=parsed.get("campos_extraidos", {}),
+            hallazgos=[Hallazgo(h["tipo"], h["codigo"], h["mensaje"])
+                       for h in parsed.get("hallazgos", [])],
+        )
+
 def get_reviewer() -> IAReviewer:
+    if settings.ia_backend == "nvidia" and settings.nvidia_nim_api_key:
+        return NvidiaNimReviewer()
     if settings.ia_backend == "claude" and settings.anthropic_api_key:
         return ClaudeReviewer()
     return SimulatedReviewer()

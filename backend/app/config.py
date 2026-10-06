@@ -46,9 +46,10 @@ class Settings(BaseSettings):
     keys_dir: str = "/data/keys"           # solo jwe_backend=local
     credencial_ttl_meses: int = 12
 
-    # --- Revisión IA: simulada | claude -----------------------------------
+    # --- Revisión IA: simulada | claude | nvidia --------------------------
     ia_backend: str = "simulada"
     anthropic_api_key: str = ""
+    nvidia_nim_api_key: str = ""
 
     # --- Notificaciones ----------------------------------------------------
     smtp_host: str = ""

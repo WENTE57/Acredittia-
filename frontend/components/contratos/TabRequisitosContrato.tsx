@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Modal, Spinner } from "./ui";
+import { Modal, Spinner } from "@/components/ui";
 import * as Api from "@/lib/cliente";
 import { Contrato, PlataformaContrato } from "@/lib/tipos";
 
