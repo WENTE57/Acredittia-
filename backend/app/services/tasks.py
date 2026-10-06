@@ -36,6 +36,7 @@ from datetime import date, datetime, timezone
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
+from . import nvidia_nim
 from ..database import worker_session
 from ..models import (Alerta, Contrato, Documento, DocumentoArchivo, Faena,
                       IaHallazgo, IaReview, Reporte, Sujeto)
@@ -266,21 +267,25 @@ def revisar_documento(archivo_id: str, company_id: str,
             _reescribir_hallazgos(db, review, hallazgos)
             archivo.ia_review_id = review.id
 
-            if errores:
+            if errores or review.resultado == "con_errores":
                 doc.estado = "falta"
+                
+                # Desvincular y eliminar el archivo para obligar al usuario a subir uno nuevo
+                db.delete(archivo)
+                
                 severidad = _peor([SEVERIDAD_POR_CODIGO.get(h["codigo"],
                                                             SEVERIDAD_ERROR_DEFECTO)
                                    for h in errores])
-                titulo = f"Documento observado por IA: {doc.titulo}"
+                titulo = f"Documento rechazado por IA: {doc.titulo}"
                 db.add(Alerta(
                     company_id=cid, severidad=severidad,
                     estado="bloqueante" if severidad == "critica" else "nueva",
                     origen="ia", titulo=titulo,
-                    descripcion="; ".join(h["mensaje"] for h in errores),
+                    descripcion="; ".join(h["mensaje"] for h in errores) if errores else "Documento no corresponde al solicitado o contiene errores graves.",
                     documento_id=doc.id, sujeto_id=doc.sujeto_id,
                     contrato_id=doc.contrato_id,
                 ))
-                accion = (f"documento mantenido en falta; alerta {severidad} "
+                accion = (f"documento rechazado y desvinculado; alerta {severidad} "
                           f"generada ({', '.join(h['codigo'] for h in errores)})")
             else:
                 doc.estado = "ok"
@@ -319,6 +324,21 @@ def revisar_documento(archivo_id: str, company_id: str,
                           f"Revisión IA de '{doc.titulo}': {r.resultado}; {accion}",
                           user_id=None, entidad_tipo="documento",
                           entidad_id=doc.id)
+                          
+            # Integración Nvidia NIM / OpenCode (Job asíncrono escribe en ../Consultas)
+            try:
+                # Armar el payload completo para el JSON
+                payload = {
+                    "campos": campos,
+                    "resultado": r.resultado,
+                    "confianza": r.confianza,
+                    "hallazgos": [{"tipo": h.tipo, "codigo": h.codigo, "mensaje": h.mensaje} for h in r.hallazgos]
+                }
+                
+                nvidia_nim.revisar_documento_job(archivo.blob_path, contexto, payload)
+            except Exception as _e:
+                logger.error("Error al despachar job nvidia_nim revisión: %s", _e)
+
             db.commit()
             logger.info("revisión %s aplicada: %s", rid, accion)
         except Exception as e:  # noqa: BLE001
@@ -704,6 +724,13 @@ def extraer_carpeta_arranque(review_id: str, company_id: str, contrato_id: str,
             review.resultado = "validado" if global_ >= 0.85 else "con_observaciones"
             review.status = "done"
             review.finished_at = datetime.now(timezone.utc)
+            
+            # Integración Nvidia NIM / OpenCode (Job asíncrono escribe en ../Consultas)
+            try:
+                nvidia_nim.extraer_requisitos_job(blob_path, "arranque", propuesta)
+            except Exception as _e:
+                logger.error("Error al despachar job nvidia_nim: %s", _e)
+            
             _reescribir_hallazgos(db, review, [
                 {"tipo": "info", "codigo": "ARRANQUE_LEIDO",
                  "mensaje": (f"{total} requisitos detectados ({fuente}): "
