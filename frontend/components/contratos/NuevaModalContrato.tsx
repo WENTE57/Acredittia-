@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Modal, Spinner } from "./ui";
+import { Modal, Spinner } from "@/components/ui";
 import * as Api from "@/lib/cliente";
 import type { Faena } from "@/lib/tipos";
 import { useRouter } from "next/navigation";

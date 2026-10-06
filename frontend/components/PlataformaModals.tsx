@@ -100,6 +100,13 @@ export function GestionarUsuariosModal({
 
   useEffect(() => {
     if (plataforma) {
+      // Safeguard for mock string IDs to prevent backend 422 Unprocessable Entity
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(plataforma.id);
+      if (!isUUID) {
+        setUsuarios([]);
+        return;
+      }
+      
       setLoading(true);
       Api.credenciales.listar(contratoId, plataforma.id)
         .then(res => setUsuarios(res.items || []))
