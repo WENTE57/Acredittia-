@@ -459,6 +459,8 @@ export type Sujeto = {
   cargo: string | null;
   cargo_id: string | null;
   es_conductor: boolean;
+  telefono: string | null;
+  email: string | null;
   patente: string | null;
   tipo_equipo: string | null;
   marca: string | null;

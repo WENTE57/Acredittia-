@@ -2,9 +2,8 @@
 import React from "react";
 
 export const TABS = [
-  "Resumen", "Documentos", "Empresa", "Personal", 
-  "Vehículos / Equipos", "Licencia Interna", "Alertas IA", 
-  "Requisitos", "Historial"
+  "Alertas", "Documentos", "Documentos Faenas", "Carpeta arranque",
+  "Personal", "empresa", "vehiculos"
 ] as const;
 
 export type Tab = (typeof TABS)[number];

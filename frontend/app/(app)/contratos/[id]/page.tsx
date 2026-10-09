@@ -16,14 +16,14 @@ import { TabEmpresaContrato } from "@/components/contratos/TabEmpresaContrato";
 import { ContratoLayout } from "@/components/contratos/ContratoLayout";
 import { TabResumen } from "@/components/contratos/TabResumen";
 
-const TABS = ["Resumen", "Documentos", "Empresa", "Personal", "Vehículos / Equipos", "Licencia Interna", "Alertas IA", "Requisitos", "Historial"] as const;
+const TABS = ["Alertas", "Documentos", "Documentos Faenas", "Carpeta arranque", "Personal", "empresa", "vehiculos"] as const;
 type Tab = (typeof TABS)[number];
 
 
 export default function ContratoDetalle() {
   const { id } = useParams<{ id: string }>();
   const [c, setC] = useState<Contrato | null>(null);
-  const [tab, setTab] = useState<Tab>("Resumen");
+  const [tab, setTab] = useState<Tab>("Alertas");
   const [page, setPage] = useState(1);
   const [docs, setDocs] = useState<Pagina<Documento> | null>(null);
   const [plataformas, setPlataformas] = useState<PlataformaContrato[]>([]);
@@ -145,44 +145,6 @@ export default function ContratoDetalle() {
       {error && <p className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700 mb-4">{error}</p>}
       {aviso && <p className="rounded-lg bg-sky-50 px-4 py-2 text-sm text-sky-800 mb-4">ℹ️ {aviso}</p>}
 
-      {tab === "Resumen" && (
-        <TabResumen contrato={c} cambiarTab={cambiarTab} />
-      )}
-
-      {tab === "Documentos" && c && (
-        <TabDocumentosContrato contrato={c} />
-      )}
-
-      {tab === "Empresa" && c && (
-        <TabEmpresaContrato contrato={c} onSubir={subir} subiendo={subiendo} analizandoId={analizandoId} />
-      )}
-
-      {tab === "Personal" && c && (
-        <TabPersonalContrato contrato={c} plataformas={plataformas} />
-      )}
-      {tab === "Equipos" && c && (
-        <TabEquiposContrato contrato={c} plataformas={plataformas} />
-      )}
-      {tab === "Vehículos / Equipos" && c && (
-        <TabEquiposContrato contrato={c} plataformas={plataformas} />
-      )}
-
-      {tab === "Matriz" && (
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <select className="input max-w-[200px]" value={tipoMatriz}
-              onChange={(e) => { setTipoMatriz(e.target.value as "personal" | "equipo"); setPage(1); }}>
-              <option value="personal">Personal</option>
-              <option value="equipo">Equipos</option>
-            </select>
-            <span className="text-xs text-slate-500">
-              «—» significa que el requisito no aplica a ese sujeto; no es un incumplimiento.
-            </span>
-          </div>
-          {matriz && <TablaMatriz matriz={matriz} onPagina={setPage} />}
-        </div>
-      )}
-
       {tab === "Alertas" && (
         <section className="space-y-2">
           {Api.items(alertas).length === 0 && <p className="text-sm text-slate-500">Sin alertas para este contrato.</p>}
@@ -196,24 +158,35 @@ export default function ContratoDetalle() {
           {alertas && <Paginador page={alertas.page} totalPaginas={alertas.total_pages} total={alertas.total} etiqueta="alertas" onPagina={setPage} />}
         </section>
       )}
-      {tab === "Requisitos" && c && (
-        <TabRequisitosContrato contrato={c} plataformas={plataformas} />
+
+      {tab === "Documentos" && c && (
+        <TabDocumentosContrato contrato={c} />
       )}
 
-      {tab === "Historial" && (
-        <>
-          <ul className="space-y-1.5 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-sm">
-            {Api.items(hist).map((h) => (
-              <li key={h.id}>
-                <span className="text-slate-400">{new Date(h.created_at).toLocaleString("es-CL")} · </span>
-                {h.descripcion}
-                {h.usuario?.nombre && <span className="text-slate-400"> · {h.usuario.nombre}</span>}
-              </li>
-            ))}
-            {hist && hist.total === 0 && <li className="text-slate-500">Sin actividad registrada para este contrato.</li>}
-          </ul>
-          {hist && <Paginador page={hist.page} totalPaginas={hist.total_pages} total={hist.total} etiqueta="movimientos" onPagina={setPage} />}
-        </>
+      {tab === "Documentos Faenas" && c && (
+        <div className="p-8 text-center text-slate-500 border border-slate-200 border-dashed rounded-xl bg-slate-50">
+          <p className="font-semibold text-slate-700 mb-1">Documentos Faenas</p>
+          <p className="text-sm">Módulo en construcción. Aquí irán los documentos específicos de la faena.</p>
+        </div>
+      )}
+
+      {tab === "Carpeta arranque" && c && (
+        <div className="p-8 text-center text-slate-500 border border-slate-200 border-dashed rounded-xl bg-slate-50">
+          <p className="font-semibold text-slate-700 mb-1">Carpeta de Arranque</p>
+          <p className="text-sm">Módulo en construcción. Aquí irá la funcionalidad de la carpeta de arranque.</p>
+        </div>
+      )}
+
+      {tab === "Personal" && c && (
+        <TabPersonalContrato contrato={c} plataformas={plataformas} />
+      )}
+
+      {tab === "empresa" && c && (
+        <TabEmpresaContrato contrato={c} onSubir={subir} subiendo={subiendo} analizandoId={analizandoId} />
+      )}
+
+      {tab === "vehiculos" && c && (
+        <TabEquiposContrato contrato={c} plataformas={plataformas} />
       )}
 
       <Modal abierto={!!review} titulo="Revisión IA" onCerrar={() => setReview(null)} ancho="max-w-xl">

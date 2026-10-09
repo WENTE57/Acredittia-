@@ -67,7 +67,7 @@ export function ContratoLayout({
   const btnClass = `bg-${circleColor.replace("bg-", "")} hover:bg-${circleColor.replace("bg-", "")}/90`;
 
   return (
-    <div className="w-4/5 mx-auto pb-20 p-6">
+    <div className="w-full pb-20 px-6 lg:px-10">
       {/* Breadcrumb */}
       <div className="flex items-center gap-1.5 text-[0.8rem] text-slate-500 mb-4">
         <Link href="/contratos" className="hover:underline hover:text-slate-700 cursor-pointer text-[0.8rem]">Contratos</Link>

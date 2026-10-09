@@ -262,6 +262,8 @@ class Sujeto(Base):
     marca: Mapped[str | None] = mapped_column(Text)
     modelo: Mapped[str | None] = mapped_column(Text)
     anio: Mapped[int | None] = mapped_column(Integer)
+    telefono: Mapped[str | None] = mapped_column(Text)
+    email: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     contrato: Mapped[Contrato] = relationship()
