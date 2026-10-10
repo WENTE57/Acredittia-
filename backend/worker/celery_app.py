@@ -108,11 +108,12 @@ def cron_reportes_programados():
 
 @celery.task(name="acredittia.cron_purga_temporales")
 def cron_purga_temporales():
-    """Purga los blobs temporales de extracción IA con más de 24 horas."""
-    from app.services.tasks import purgar_temporales
+    """Purga los blobs temporales y el historial de chats de IA con más de 3 meses."""
+    from app.services.tasks import purgar_temporales, purgar_chat_historial
     n = purgar_temporales()
-    log.info("Blobs temporales purgados: %s", n)
-    return {"purgados": n}
+    chats_purgados = purgar_chat_historial()
+    log.info("Blobs temporales purgados: %s, Chats purgados: %s", n, chats_purgados)
+    return {"blobs_purgados": n, "chats_purgados": chats_purgados}
 
 
 celery.conf.beat_schedule = {

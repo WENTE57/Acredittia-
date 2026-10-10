@@ -60,6 +60,7 @@ class ContratoIn(BaseModel):
     # Trazabilidad del alta asistida por IA (§12.1): el job de extracción que
     # pre-llenó el formulario. No obliga a nada; solo deja el rastro.
     ia_review_id: uuid.UUID | None = None
+    requisitos_custom: dict[str, list[str]] | None = None
 
 
 class ContratoPatch(BaseModel):
@@ -219,6 +220,26 @@ def crear(body: ContratoIn, db: Session = Depends(get_db),
     except IntegrityError:
         db.rollback()
         raise err(409, "CODIGO_DUPLICADO", "Ya existe un contrato con ese código")
+
+    if body.requisitos_custom:
+        from ..models import ContratoRequisito
+        for ambito, reqs in body.requisitos_custom.items():
+            if ambito not in ("empresa", "personal", "equipos", "licencia"):
+                continue
+            db_ambito = "personal" if ambito in ("personal", "licencia") else ("equipo" if ambito == "equipos" else "empresa")
+            for req in reqs:
+                if not req.strip():
+                    continue
+                cr = ContratoRequisito(
+                    company_id=cid,
+                    contrato_id=c.id,
+                    ambito=db_ambito,
+                    titulo=req.strip(),
+                    vinculo_tipo="otro",
+                    obligatorio=True
+                )
+                db.add(cr)
+        db.flush()
 
     n = instanciar_docs(db, cid, "empresa", contrato_id=c.id,
                         faena_id=faena.id, contrato_plantilla_id=c.id)

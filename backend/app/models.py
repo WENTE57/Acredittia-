@@ -731,3 +731,18 @@ class AuditoriaDocumento(Base):
     observacion: Mapped[str | None] = mapped_column(Text)
     fecha: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     version: Mapped[int] = mapped_column(Integer, default=1)
+
+
+class ChatHistorial(Base):
+    """
+    Historial de chat para IA con persistencia de 3 meses.
+    Almacena los mensajes enviados y las respuestas recibidas (estructuradas o no).
+    """
+    __tablename__ = "chat_historial"
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    company_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("companies.id"))
+    user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    contexto: Mapped[str] = mapped_column(Text, index=True) # Ej: "contratos_modal"
+    mensaje_usuario: Mapped[str] = mapped_column(Text)
+    respuesta_ia: Mapped[str] = mapped_column(Text) # Puede ser JSON serializado
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
