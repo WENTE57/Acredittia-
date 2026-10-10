@@ -2,8 +2,8 @@
 import React from "react";
 
 export const TABS = [
-  "Resumen", "Documentos", "Empresa", "Personal", 
-  "Vehículos / Equipos", "Licencia Interna", "Alertas IA", 
+  "Resumen", "Chat", "Documentos", "Empresa", "Personal",
+  "Vehículos / Equipos", "Licencia Interna", "Alertas IA",
   "Requisitos", "Historial"
 ] as const;
 
@@ -16,26 +16,32 @@ interface ContratoTabsProps {
 }
 
 export function ContratoTabs({ currentTab, onTabChange, colorTheme = "bg-blue-600" }: ContratoTabsProps) {
-  // Determine color for the active tab bottom border based on colorTheme class
+  // Color del tab activo derivado del tema del mandante (clases completas para el JIT).
   const textColor = colorTheme.replace("bg-", "text-");
   const borderColor = colorTheme.replace("bg-", "border-b-");
 
   return (
-    <div className="flex gap-1 border-b-2 border-slate-200 mb-5 bg-transparent overflow-x-auto">
+    <div
+      role="tablist"
+      aria-label="Secciones del contrato"
+      className="flex bg-white border border-slate-200 border-b-2 rounded-t-2xl overflow-x-auto mb-5"
+    >
       {TABS.map((t) => {
         const isActive = currentTab === t;
         return (
-          <div 
-            key={t} 
+          <button
+            key={t}
+            role="tab"
+            aria-selected={isActive}
             onClick={() => onTabChange(t)}
-            className={`px-5 py-3.5 text-[0.83rem] font-semibold cursor-pointer border-b-[3px] whitespace-nowrap bg-white transition-all ${
-              isActive 
-                ? `${borderColor} ${textColor}` 
+            className={`px-3 py-[13px] text-[0.8rem] font-semibold whitespace-nowrap bg-white transition-colors border-b-[3px] -mb-[2px] cursor-pointer ${
+              isActive
+                ? `${borderColor} ${textColor}`
                 : "border-b-transparent text-slate-500 hover:text-slate-700"
             }`}
           >
             {t}
-          </div>
+          </button>
         );
       })}
     </div>

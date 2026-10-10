@@ -104,6 +104,7 @@ export function GestionarUsuariosModal({
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(plataforma.id);
       if (!isUUID) {
         setUsuarios([]);
+        setLoading(false);
         return;
       }
       

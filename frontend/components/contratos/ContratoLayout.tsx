@@ -1,8 +1,13 @@
 "use client";
 import React from "react";
 import Link from "next/link";
+import * as Api from "@/lib/cliente";
 import { Contrato, PlataformaContrato } from "@/lib/tipos";
 import { ContratoTabs, Tab } from "./ContratoTabs";
+import { ReporteContratoModal } from "./ReporteContratoModal";
+import { CompartirContratoModal } from "./CompartirContratoModal";
+import { ExportarContratoModal } from "./ExportarContratoModal";
+import { CorreosContratoModal } from "./CorreosContratoModal";
 
 interface ContratoLayoutProps {
   contrato: Contrato;
@@ -11,9 +16,35 @@ interface ContratoLayoutProps {
   onDeletePlataforma: (id: string) => void;
   onAddPlataforma: () => void;
   onManagePlataforma: (plataforma: PlataformaContrato) => void;
+  onRefreshPlataformas: () => void;
   tabActual: Tab;
   onTabChange: (tab: Tab) => void;
   children: React.ReactNode;
+}
+
+/** Nº de contrato estilo referencia (`ctNumero`: `CT-` + 8 primeros del id). */
+export function numeroContrato(c: Contrato): string {
+  return c.codigo || `CT-${c.id.slice(0, 8).toUpperCase()}`;
+}
+
+function fmtCorta(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso + "T00:00:00").toLocaleDateString("es-CL").replace(/\//g, "-");
+}
+
+/** Línea de vigencia estilo `ctVigHtml`: fechas + días restantes o aviso. */
+function infoVigencia(c: Contrato): { texto: string; fondo: string; color: string } {
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const ini = c.fecha_inicio ? new Date(c.fecha_inicio + "T00:00:00") : null;
+  const fin = c.fecha_termino ? new Date(c.fecha_termino + "T00:00:00") : null;
+  const neutro = { fondo: "#f1f5f9", color: "#334155" };
+  if (!fin) return { ...neutro, texto: `Vigencia: ${ini ? fmtCorta(c.fecha_inicio) : "—"} · sin fecha de término` };
+  const dias = Math.ceil((fin.getTime() - hoy.getTime()) / 86_400_000);
+  const rango = `${fmtCorta(c.fecha_inicio)} → ${fmtCorta(c.fecha_termino)}`;
+  if (dias < 0) return { fondo: "#fee2e2", color: "#b91c1c", texto: `Vigencia: ${rango} · vencido hace ${-dias} días` };
+  if (dias <= 60) return { fondo: "#fef3c7", color: "#b45309", texto: `Vigencia: ${rango} · ${dias} días restantes` };
+  return { ...neutro, texto: `Vigencia: ${rango} · ${dias} días restantes` };
 }
 
 const PLATFORM_LOGOS = [
@@ -41,10 +72,28 @@ export function ContratoLayout({
   onDeletePlataforma,
   onAddPlataforma,
   onManagePlataforma,
+  onRefreshPlataformas,
   tabActual,
   onTabChange,
   children
 }: ContratoLayoutProps) {
+  const [modalReporte, setModalReporte] = React.useState(false);
+  const [modalCompartir, setModalCompartir] = React.useState(false);
+  const [modalExportar, setModalExportar] = React.useState(false);
+  const [modalCorreos, setModalCorreos] = React.useState(false);
+  const [solicitando, setSolicitando] = React.useState<string | null>(null);
+
+  const solicitarAcceso = async (pid: string) => {
+    setSolicitando(pid);
+    try {
+      await Api.plataformas.solicitarAcceso(c.id, pid);
+      onRefreshPlataformas();
+    } catch (e) {
+      alert(Api.mensajeError(e));
+    } finally {
+      setSolicitando(null);
+    }
+  };
   
   // Dynamic colors based on Mandante
   let colorTheme = "blue";
@@ -67,13 +116,13 @@ export function ContratoLayout({
   const btnClass = `bg-${circleColor.replace("bg-", "")} hover:bg-${circleColor.replace("bg-", "")}/90`;
 
   return (
-    <div className="w-4/5 mx-auto pb-20 p-6">
+    <div className="max-w-[1200px] mx-auto pb-20 p-6">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-[0.8rem] text-slate-500 mb-4">
+      <nav aria-label="Migas de pan" className="flex items-center gap-1.5 text-[0.8rem] text-slate-500 mb-4">
         <Link href="/contratos" className="hover:underline hover:text-slate-700 cursor-pointer text-[0.8rem]">Contratos</Link>
-        <span>›</span>
-        <span className="cursor-pointer text-[0.8rem] hover:underline hover:text-slate-700">Detalle del contrato</span>
-      </div>
+        <span aria-hidden="true">›</span>
+        <Link href="/contratos" className="cursor-pointer text-[0.8rem] hover:underline hover:text-slate-700">Detalle del contrato</Link>
+      </nav>
 
       {/* AMBIENTE DEL MANDANTE */}
       <div className={`relative overflow-hidden ${headerBgGradient} to-white border border-slate-200 rounded-[18px] px-6 py-5 mb-5 shadow-sm`}>
@@ -83,30 +132,48 @@ export function ContratoLayout({
         {/* Header row */}
         <div className="relative flex items-center justify-between flex-wrap gap-3 mb-3.5">
           <div className="flex items-center gap-3.5">
-            <h2 className="text-[#0F172A] text-[1.45rem] font-bold m-0">{c.nombre}</h2>
+            <h2 className="text-[#0F172A] text-[1.45rem] font-bold m-0">Contrato {numeroContrato(c)}</h2>
             <span className={`px-2 py-0.5 text-[0.78rem] font-bold rounded ${vigente ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
               {vigente ? 'Vigente' : 'En evaluación'}
             </span>
+            <span className="text-slate-500 text-[0.95rem] font-medium">{c.nombre}</span>
           </div>
           <div className="flex items-center gap-2">
-            <button className="h-[34px] px-3.5 border border-slate-300 rounded-[8px] bg-white text-slate-700 font-semibold text-[0.85rem] hover:bg-slate-50 hover:border-slate-400 transition-colors shadow-sm cursor-pointer" onClick={() => alert('Descargando reporte — demo')}>
+            <button className="h-[34px] px-3.5 border border-slate-300 rounded-[8px] bg-white text-slate-700 font-semibold text-[0.85rem] hover:bg-slate-50 hover:border-slate-400 transition-colors shadow-sm cursor-pointer" onClick={() => setModalCompartir(true)}>
+              👥 Compartir
+            </button>
+            <button className="h-[34px] px-3.5 border-none rounded-[8px] bg-[#0F172A] text-white font-semibold text-[0.85rem] hover:bg-slate-800 transition-colors shadow-sm cursor-pointer" onClick={() => setModalExportar(true)}>
+              📦 Exportar
+            </button>
+            <button className="h-[34px] px-3.5 border border-slate-300 rounded-[8px] bg-white text-slate-700 font-semibold text-[0.85rem] hover:bg-slate-50 hover:border-slate-400 transition-colors shadow-sm cursor-pointer" onClick={() => setModalReporte(true)}>
               <span className="text-[0.9rem] mr-1">↓</span> Descargar reporte
             </button>
             <button className={`h-[34px] px-3.5 border-none rounded-[8px] ${btnClass} text-white font-semibold text-[0.85rem] transition-colors shadow-sm cursor-pointer`} onClick={() => alert('Editar contrato — demo')}>
               ✎ Editar contrato
             </button>
-            <button className="h-[34px] w-[34px] border border-slate-300 rounded-[8px] bg-white text-slate-700 font-bold hover:bg-slate-50 hover:border-slate-400 transition-colors shadow-sm flex items-center justify-center cursor-pointer">
-              ⋮
+            <button className="h-[34px] px-2.5 border border-slate-300 rounded-[8px] bg-white text-slate-700 font-semibold text-[0.85rem] hover:bg-slate-50 hover:border-slate-400 transition-colors shadow-sm flex items-center justify-center cursor-pointer" title="Correos de notificación" onClick={() => setModalCorreos(true)}>
+              ✉ Correos
             </button>
           </div>
         </div>
 
-        {/* Mandante logo + faena */}
-        <div className="relative flex items-center gap-3">
+        {/* Mandante logo + faena + vigencia */}
+        <div className="relative flex items-center gap-3 flex-wrap">
           <div className="bg-white border border-slate-200 rounded-[10px] px-3 py-1.5 flex items-center h-10 shadow-[0_2px_8px_rgba(0,0,0,0.04)] font-bold text-slate-700 text-sm">
             {c.faena?.mandante}
           </div>
           <span className="text-slate-800 text-[0.88rem] font-semibold">{c.faena?.nombre} · {c.faena?.mandante}</span>
+          {(() => {
+            const v = infoVigencia(c);
+            return (
+              <span
+                className="inline-block text-[0.74rem] font-bold px-2.5 py-0.5 rounded-md whitespace-nowrap"
+                style={{ backgroundColor: v.fondo, color: v.color }}
+              >
+                {v.texto}
+              </span>
+            );
+          })()}
         </div>
       </div>
 
@@ -159,13 +226,15 @@ export function ContratoLayout({
                           }`}></span>
                           {pl.estado.charAt(0).toUpperCase() + pl.estado.slice(1)}
                         </span>
-                        <button 
-                          onClick={() => onDeletePlataforma(pl.id)} 
-                          className="text-slate-300 hover:text-red-500 transition-colors p-1 rounded-md hover:bg-red-50 flex items-center justify-center"
-                          title="Desvincular plataforma"
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                        </button>
+                        {pl.es_custom && (
+                          <button
+                            onClick={() => onDeletePlataforma(pl.id)}
+                            className="text-slate-300 hover:text-red-500 transition-colors p-1 rounded-md hover:bg-red-50 flex items-center justify-center"
+                            title="Desvincular plataforma"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                          </button>
+                        )}
                       </div>
                     </div>
                   <div className="text-[0.8rem] font-bold text-slate-800">
@@ -180,6 +249,15 @@ export function ContratoLayout({
                   
                   <div className="text-[0.7rem] text-slate-500 mt-2.5">Usuarios activos</div>
                   <div className="text-[1.15rem] font-bold text-slate-800 leading-tight">{pl.credenciales || 0}</div>
+                  {pl.estado === "sin_acceso" && pl.id && (
+                    <button
+                      onClick={() => solicitarAcceso(pl.id)}
+                      disabled={solicitando === pl.id}
+                      className="mt-2 h-8 px-3 rounded-lg border border-amber-300 bg-amber-50 text-[0.72rem] font-bold text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50 w-full"
+                    >
+                      {solicitando === pl.id ? "Solicitando..." : "Solicitar acceso"}
+                    </button>
+                  )}
                   {pl.nota && <div className="text-[0.65rem] text-emerald-600 mt-0.5 font-semibold">{pl.nota}</div>}
                   {(!pl.nota || pl.credenciales === 0) && <div className="text-[0.65rem] text-slate-500 mt-0.5">Sin cuentas registradas</div>}
                   <div className="mt-2.5"><span className="text-[0.7rem] text-blue-600 hover:underline cursor-pointer font-medium" onClick={() => onManagePlataforma(pl)}>Gestionar usuarios →</span></div>
@@ -196,6 +274,35 @@ export function ContratoLayout({
       <div className="mt-5">
         {children}
       </div>
+
+      {/* Volver al listado */}
+      <div className="mt-7 flex justify-between items-center border-t border-slate-200 pt-4">
+        <Link href="/contratos" className="text-[0.82rem] font-medium text-slate-500 hover:text-blue-700 hover:underline">
+          ← Volver al listado de contratos
+        </Link>
+      </div>
+
+      <ReporteContratoModal
+        abierto={modalReporte}
+        onCerrar={() => setModalReporte(false)}
+        contrato={c}
+      />
+      <ExportarContratoModal
+        abierto={modalExportar}
+        onCerrar={() => setModalExportar(false)}
+        contrato={c}
+        plataformas={plataformas}
+      />
+      <CorreosContratoModal
+        abierto={modalCorreos}
+        onCerrar={() => setModalCorreos(false)}
+        contrato={c}
+      />
+      <CompartirContratoModal
+        abierto={modalCompartir}
+        onCerrar={() => setModalCompartir(false)}
+        contrato={c}
+      />
     </div>
   );
 }

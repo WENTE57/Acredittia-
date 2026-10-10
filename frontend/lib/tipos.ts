@@ -402,6 +402,13 @@ export type ContratoIn = {
   renovacion_automatica?: boolean;
   /** Job de `POST /contratos/analizar` que originó el alta. */
   ia_review_id?: string | null;
+  /** Requisitos propios del contrato fijados por el asistente o a mano (C2a). */
+  requisitos_custom?: {
+    empresa?: string[];
+    personal?: string[];
+    equipos?: string[];
+    licencia?: string[];
+  } | null;
 };
 
 export type ContratoPatch = {

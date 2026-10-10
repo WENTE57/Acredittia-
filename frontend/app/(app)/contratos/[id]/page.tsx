@@ -13,10 +13,12 @@ import { TabPersonalContrato } from "@/components/contratos/TabPersonalContrato"
 import { TabEquiposContrato } from "@/components/contratos/TabEquiposContrato";
 import { TabDocumentosContrato } from "@/components/contratos/TabDocumentosContrato";
 import { TabEmpresaContrato } from "@/components/contratos/TabEmpresaContrato";
+import { TabLicenciaInternaContrato } from "@/components/contratos/TabLicenciaInternaContrato";
 import { ContratoLayout } from "@/components/contratos/ContratoLayout";
 import { TabResumen } from "@/components/contratos/TabResumen";
+import { TabChatContrato } from "@/components/contratos/TabChatContrato";
 
-const TABS = ["Resumen", "Documentos", "Empresa", "Personal", "Vehículos / Equipos", "Licencia Interna", "Alertas IA", "Requisitos", "Historial"] as const;
+const TABS = ["Resumen", "Chat", "Documentos", "Empresa", "Personal", "Vehículos / Equipos", "Licencia Interna", "Alertas IA", "Requisitos", "Historial"] as const;
 type Tab = (typeof TABS)[number];
 
 
@@ -50,6 +52,10 @@ export default function ContratoDetalle() {
       .then(setDocs).catch((e) => setError(Api.mensajeError(e)));
   }, [id, page]);
 
+  const [tipoHist, setTipoHist] = useState("");
+  const [moduloHist, setModuloHist] = useState("");
+  const [qHist, setQHist] = useState("");
+
   // Cada pestaña consume su propio endpoint del contrato (§4): ya no hace falta
   // pedir /alertas o /dashboard/actividad y filtrar en el navegador.
   useEffect(() => {
@@ -58,7 +64,14 @@ export default function ContratoDetalle() {
     Api.plataformas.listar(id).then(res => setPlataformas(res.items || [])).catch(fallo);
     if (tab === "Documentos") cargarDocs();
     if (tab === "Alertas") Api.contratos.alertas(id, { page, page_size: 50 }).then(setAlertas).catch(fallo);
-  }, [tab, id, page, tipoMatriz, cargarDocs]);
+    if (tab === "Historial") {
+      Api.contratos.historial(id, {
+        page, page_size: 20,
+        ...(tipoHist ? { tipo: tipoHist } : {}),
+        ...(moduloHist ? { modulo: moduloHist } : {}),
+      }).then(setHist).catch(fallo);
+    }
+  }, [tab, id, page, tipoMatriz, tipoHist, moduloHist, cargarDocs]);
 
   const cambiarTab = (t: Tab) => { setTab(t); setPage(1); };
 
@@ -139,6 +152,7 @@ export default function ContratoDetalle() {
       onDeletePlataforma={handleDeletePlataforma}
       onAddPlataforma={() => setShowAddPlataforma(true)}
       onManagePlataforma={setPlataformaToManage}
+      onRefreshPlataformas={() => Api.plataformas.listar(id).then(res => setPlataformas(res.items || []))}
       tabActual={tab}
       onTabChange={cambiarTab}
     >
@@ -146,7 +160,7 @@ export default function ContratoDetalle() {
       {aviso && <p className="rounded-lg bg-sky-50 px-4 py-2 text-sm text-sky-800 mb-4">ℹ️ {aviso}</p>}
 
       {tab === "Resumen" && (
-        <TabResumen contrato={c} cambiarTab={cambiarTab} />
+        <TabResumen contrato={c} cambiarTab={cambiarTab} plataformas={plataformas} />
       )}
 
       {tab === "Documentos" && c && (
@@ -197,23 +211,71 @@ export default function ContratoDetalle() {
         </section>
       )}
       {tab === "Requisitos" && c && (
-        <TabRequisitosContrato contrato={c} plataformas={plataformas} />
+        <TabRequisitosContrato contrato={c} plataformas={plataformas} onCambio={cargar} />
+      )}
+
+      {tab === "Licencia Interna" && c && (
+        <TabLicenciaInternaContrato contrato={c} cambiarTab={cambiarTab} onSubir={subir} subiendo={subiendo} analizandoId={analizandoId} />
+      )}
+
+      {tab === "Chat" && c && (
+        <TabChatContrato contrato={c} />
       )}
 
       {tab === "Historial" && (
-        <>
-          <ul className="space-y-1.5 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-sm">
-            {Api.items(hist).map((h) => (
-              <li key={h.id}>
-                <span className="text-slate-400">{new Date(h.created_at).toLocaleString("es-CL")} · </span>
-                {h.descripcion}
-                {h.usuario?.nombre && <span className="text-slate-400"> · {h.usuario.nombre}</span>}
-              </li>
-            ))}
-            {hist && hist.total === 0 && <li className="text-slate-500">Sin actividad registrada para este contrato.</li>}
-          </ul>
+        <div>
+          <div className="mb-3.5">
+            <h3 className="text-[#1E293B] text-[0.95rem] font-bold m-0">Historial del contrato</h3>
+            <p className="text-[0.78rem] text-slate-500 mt-0.5 mb-0">Registro de todas las actividades y cambios realizados en este contrato.</p>
+          </div>
+          <div className="view-filters">
+            <input
+              className="view-search"
+              placeholder="Buscar por actividad, usuario o detalle..."
+              value={qHist}
+              onChange={(e) => setQHist(e.target.value)}
+            />
+            <select
+              className="view-select"
+              aria-label="Tipo de actividad"
+              value={tipoHist}
+              onChange={(e) => { setTipoHist(e.target.value); setPage(1); }}
+            >
+              <option value="">Tipo de actividad: Todas</option>
+              <option value="creacion">Creación</option>
+              <option value="actualizacion">Actualización</option>
+              <option value="subida_documento">Subida de documento</option>
+              <option value="asignacion">Asignación</option>
+              <option value="alerta_ia">Alerta IA</option>
+              <option value="visualizacion">Visualización</option>
+              <option value="comentario">Comentario</option>
+            </select>
+            <select
+              className="view-select"
+              aria-label="Módulo"
+              value={moduloHist}
+              onChange={(e) => { setModuloHist(e.target.value); setPage(1); }}
+            >
+              <option value="">Módulo: Todos</option>
+              <option value="contrato">Contrato</option>
+              <option value="documentos">Documentos</option>
+              <option value="personal">Personal</option>
+              <option value="equipos">Equipos</option>
+              <option value="alertas">Alertas</option>
+              <option value="requisitos">Requisitos</option>
+              <option value="reportes">Reportes</option>
+            </select>
+          </div>
+          <TablaHistorial
+            filas={Api.items(hist).filter((h) => {
+              if (!qHist.trim()) return true;
+              const q = qHist.toLowerCase();
+              return `${h.descripcion} ${h.usuario?.nombre || ""} ${h.modulo}`.toLowerCase().includes(q);
+            })}
+            cargando={!hist}
+          />
           {hist && <Paginador page={hist.page} totalPaginas={hist.total_pages} total={hist.total} etiqueta="movimientos" onPagina={setPage} />}
-        </>
+        </div>
       )}
 
       <Modal abierto={!!review} titulo="Revisión IA" onCerrar={() => setReview(null)} ancho="max-w-xl">
@@ -266,6 +328,68 @@ export default function ContratoDetalle() {
         }}
       />
     </ContratoLayout>
+  );
+}
+
+/**
+ * Historial del contrato estilo referencia: tabla con tipo, módulo,
+ * descripción, usuario y plataforma.
+ */
+const TIPO_HIST: Record<string, { lbl: string; fondo: string; color: string }> = {
+  creacion: { lbl: "Creación", fondo: "#dcfce7", color: "#166534" },
+  actualizacion: { lbl: "Actualización", fondo: "#dbeafe", color: "#1e40af" },
+  subida_documento: { lbl: "Subida de documento", fondo: "#f3e8ff", color: "#6b21a8" },
+  asignacion: { lbl: "Asignación", fondo: "#fef9c3", color: "#854d0e" },
+  alerta_ia: { lbl: "Alerta IA", fondo: "#fee2e2", color: "#b91c1c" },
+  visualizacion: { lbl: "Visualización", fondo: "#f0fdf4", color: "#166534" },
+  comentario: { lbl: "Comentario", fondo: "#fff7ed", color: "#9a3412" },
+};
+
+function TablaHistorial({ filas, cargando }: { filas: ActividadFila[]; cargando: boolean }) {
+  return (
+    <div className="bg-white border border-slate-200 rounded-[12px] shadow-sm overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[860px] border-collapse">
+          <thead>
+            <tr className="bg-slate-50 border-b border-slate-200 text-left text-[0.68rem] text-slate-500 font-bold uppercase tracking-wider">
+              <th className="py-3 px-4">Fecha y hora</th>
+              <th className="py-3 px-4">Tipo de actividad</th>
+              <th className="py-3 px-4">Módulo</th>
+              <th className="py-3 px-4">Descripción</th>
+              <th className="py-3 px-4">Usuario</th>
+              <th className="py-3 px-4">Plataforma</th>
+            </tr>
+          </thead>
+          <tbody>
+            {cargando ? (
+              <tr><td colSpan={6} className="p-8 text-center text-slate-400 text-[0.85rem]">Cargando historial...</td></tr>
+            ) : filas.length === 0 ? (
+              <tr><td colSpan={6} className="p-8 text-center text-slate-400 text-[0.85rem]">Sin actividad registrada para estos filtros.</td></tr>
+            ) : (
+              filas.map((h) => {
+                const t = TIPO_HIST[h.tipo] || { lbl: h.tipo, fondo: "#f1f5f9", color: "#475569" };
+                return (
+                  <tr key={h.id} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50 transition-colors">
+                    <td className="py-3 px-4 text-[0.78rem] text-slate-500 whitespace-nowrap">
+                      {new Date(h.created_at).toLocaleString("es-CL")}
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="inline-block text-[0.68rem] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap" style={{ backgroundColor: t.fondo, color: t.color }}>
+                        {t.lbl}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-[0.8rem] text-slate-500 capitalize">{h.modulo}</td>
+                    <td className="py-3 px-4 text-[0.8rem] text-slate-800">{h.descripcion}</td>
+                    <td className="py-3 px-4 text-[0.78rem] text-slate-700">{h.usuario?.nombre || "—"}</td>
+                    <td className="py-3 px-4 text-[0.78rem] text-slate-500">{h.plataforma || "—"}</td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 

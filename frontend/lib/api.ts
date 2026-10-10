@@ -204,7 +204,7 @@ export async function api<T = any>(
   let res: Response;
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    const timeoutId = setTimeout(() => controller.abort(), 180000);
     res = await fetch(`${getBaseUrl()}/api/v1${path}${qs(opts.query)}`, {
       method,
       headers,
